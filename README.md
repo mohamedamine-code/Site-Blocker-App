@@ -71,11 +71,7 @@ android/
 This project is ready to push to `MOHAMEDAMINE2026/site-blocker-app`. After reviewing/adjusting, run:
 
 ```bash
-git init
-git remote add origin https://github.com/MOHAMEDAMINE2026/site-blocker-app.git
-git add .
-git commit -m "feat: add site blocker app" -m "Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>"
-git push -u origin main
+
 ```
 
 Happy focusing! 🎯
