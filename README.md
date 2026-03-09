@@ -66,6 +66,10 @@ android/
 - Static analysis: `flutter analyze`
 - Widget/unit tests (if/when added): `flutter test`
 
+## Change Review
+
+- Ongoing change-by-change notes are tracked in `README_CHANGES.md`.
+
 ## GitHub
 
 This project is ready to push to `MOHAMEDAMINE2026/site-blocker-app`. After reviewing/adjusting, run:

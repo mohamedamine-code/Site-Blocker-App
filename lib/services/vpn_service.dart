@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../screens/block_screen.dart';
+import 'database_service.dart';
 
 class VpnServiceController {
   VpnServiceController._() {
@@ -43,7 +44,9 @@ class VpnServiceController {
 
   Future<void> refreshBlocklist() async {
     try {
-      await _channel.invokeMethod('refreshBlocklist');
+      final blockedDomains =
+          (await DatabaseService.instance.getBlockedDomains()).toList();
+      await _channel.invokeMethod('refreshBlocklist', blockedDomains);
     } on PlatformException {
       // The service might not be running yet; ignore and rely on the next refresh.
     }
