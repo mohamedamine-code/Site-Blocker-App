@@ -71,6 +71,7 @@ android/
 This project is ready to push to `MOHAMEDAMINE2026/site-blocker-app`. After reviewing/adjusting, run:
 
 ```bash
+git init
 
 ```
 
