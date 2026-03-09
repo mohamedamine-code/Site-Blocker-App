@@ -126,7 +126,7 @@ class _HomeScreenState extends State<HomeScreen> {
         title: const Text('Site Blocker'),
       ),
       body: RefreshIndicator(
-        onRefresh: _loadSites,
+        onRefresh: _refreshSitesAndBlocklist,
         child: _buildBody(),
       ),
       floatingActionButton: Column(
@@ -152,7 +152,50 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  Future<void> _refreshSitesAndBlocklist() async {
+    await _loadSites();
+    await _startVpn();
+    await _vpnService.refreshBlocklist();
+    await _validateRefreshCoverage();
+  }
+
+  Future<void> _validateRefreshCoverage() async {
+    if (_sites.isEmpty) {
+      return;
+    }
+
+    final unmatchedDomains = <String>[];
+    for (final site in _sites) {
+      final matchedDomain =
+          await _vpnService.findMatchingBlockedDomain(site.url);
+      if (matchedDomain == null) {
+        unmatchedDomains.add(site.url);
+      }
+    }
+
+    if (!mounted || unmatchedDomains.isEmpty) {
+      return;
+    }
+
+    final previewDomains = unmatchedDomains.take(3).join(', ');
+    final remainingCount = unmatchedDomains.length - 3;
+    final remainingLabel =
+        remainingCount > 0 ? ' +$remainingCount more' : '';
+
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.hideCurrentSnackBar();
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text(
+          'Refresh completed, but ${unmatchedDomains.length} domain(s) are not active yet: '
+          '$previewDomains$remainingLabel',
+        ),
+      ),
+    );
+  }
+
   Widget _buildBody() {
+
     if (_loading) {
       return ListView(
         physics: const AlwaysScrollableScrollPhysics(),
@@ -210,6 +253,7 @@ class _HomeScreenState extends State<HomeScreen> {
         );
       },
     );
+
   }
 
   String _formatDate(DateTime date) {

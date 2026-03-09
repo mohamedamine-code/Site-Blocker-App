@@ -3,6 +3,8 @@ package com.example.site_blocker_app
 import android.content.Intent
 import android.net.VpnService
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import android.provider.Settings
 import androidx.core.content.ContextCompat
 import io.flutter.embedding.android.FlutterActivity
@@ -46,9 +48,19 @@ class MainActivity : FlutterActivity() {
                             (call.arguments as? List<*>)
                                 ?.mapNotNull { (it as? String)?.trim()?.lowercase() }
                                 ?: emptyList()
-                        VpnBlockerService.updateInMemoryBlocklist(domains)
-                        VpnBlockerService.broadcastRefresh(this)
-                        result.success(null)
+                        val applied = VpnBlockerService.applyBlocklistImmediately(domains)
+                        if (applied) {
+                            restartVpnService {
+                                result.success(true)
+                            }
+                        } else {
+                            // Fallback: make sure service exists and request async refresh.
+                            startVpnService()
+                            VpnBlockerService.broadcastRefresh(this)
+                            Handler(Looper.getMainLooper()).postDelayed({
+                                result.success(false)
+                            }, 350)
+                        }
                     }
                     "stopVpn" -> {
                         stopService(Intent(this, VpnBlockerService::class.java))
@@ -59,6 +71,14 @@ class MainActivity : FlutterActivity() {
                     }
                     "getPrivateDnsMode" -> {
                         result.success(getPrivateDnsMode())
+                    }
+                    "findMatchingBlockedDomain" -> {
+                        val queryDomain = (call.arguments as? String)?.trim().orEmpty()
+                        if (queryDomain.isEmpty()) {
+                            result.success(null)
+                        } else {
+                            result.success(VpnBlockerService.findMatchingBlockedDomain(queryDomain))
+                        }
                     }
                     else -> result.notImplemented()
                 }
@@ -94,6 +114,14 @@ class MainActivity : FlutterActivity() {
     private fun startVpnService() {
         val intent = Intent(this, VpnBlockerService::class.java)
         ContextCompat.startForegroundService(this, intent)
+    }
+
+    private fun restartVpnService(onRestarted: (() -> Unit)? = null) {
+        stopService(Intent(this, VpnBlockerService::class.java))
+        Handler(Looper.getMainLooper()).postDelayed({
+            startVpnService()
+            onRestarted?.invoke()
+        }, 500)
     }
 
     private fun getPrivateDnsMode(): String {

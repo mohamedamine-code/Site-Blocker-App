@@ -40,7 +40,13 @@ class VpnServiceController {
         ...backendDomains,
       }.toList()
         ..sort();
-      await _channel.invokeMethod('refreshBlocklist', blockedDomains);
+      final applied =
+          await _channel.invokeMethod<bool>('refreshBlocklist', blockedDomains);
+      if (applied != true) {
+        // Service may still be starting; one short retry avoids requiring app restart.
+        await Future<void>.delayed(const Duration(milliseconds: 200));
+        await _channel.invokeMethod<bool>('refreshBlocklist', blockedDomains);
+      }
     } on PlatformException {
       // The service might not be running yet; ignore and rely on the next refresh.
     }
@@ -64,6 +70,20 @@ class VpnServiceController {
       return mode ?? 'unknown';
     } on PlatformException {
       return 'unknown';
+    }
+  }
+
+  Future<String?> findMatchingBlockedDomain(String domain) async {
+    try {
+      if (domain.trim().isEmpty) {
+        return null;
+      }
+      return await _channel.invokeMethod<String>(
+        'findMatchingBlockedDomain',
+        domain,
+      );
+    } on PlatformException {
+      return null;
     }
   }
 }

@@ -41,12 +41,15 @@ class VpnBlockerService : VpnService() {
         private const val VPN_DNS_ADDRESS = "10.8.0.2"
         private const val PRIMARY_DNS = "1.1.1.1"
         private const val SECONDARY_DNS = "8.8.8.8"
+        private val blocklistStateLock = Any()
         private val inMemoryBlocklist = mutableSetOf<String>()
+        @Volatile
+        private var activeService: VpnBlockerService? = null
         @Volatile
         private var lastBlockedDomain: String? = null
 
         fun updateInMemoryBlocklist(domains: List<String>) {
-            synchronized(inMemoryBlocklist) {
+            synchronized(blocklistStateLock) {
                 inMemoryBlocklist.clear()
                 domains.forEach { domain ->
                     val canonical = canonicalizeDomain(domain)
@@ -75,6 +78,25 @@ class VpnBlockerService : VpnService() {
             lastBlockedDomain = null
             return value
         }
+
+        fun applyBlocklistImmediately(domains: List<String>): Boolean {
+            updateInMemoryBlocklist(domains)
+            val service = activeService ?: return false
+            service.applyInMemoryBlocklistToRuntime()
+            return true
+        }
+
+        fun findMatchingBlockedDomain(queryDomain: String): String? {
+            val normalizedQuery = canonicalizeDomain(queryDomain)
+            val snapshot = mutableSetOf<String>()
+            synchronized(blocklistStateLock) {
+                snapshot.addAll(inMemoryBlocklist)
+                snapshot.addAll(activeService?.blocklist ?: emptySet())
+            }
+            return snapshot.firstOrNull { domain ->
+                normalizedQuery == domain || normalizedQuery.endsWith(".$domain")
+            }
+        }
     }
 
     private var vpnInterface: ParcelFileDescriptor? = null
@@ -91,6 +113,7 @@ class VpnBlockerService : VpnService() {
 
     override fun onCreate() {
         super.onCreate()
+        activeService = this
         val filter = IntentFilter(ACTION_REFRESH)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             registerReceiver(refreshReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
@@ -104,6 +127,9 @@ class VpnBlockerService : VpnService() {
         unregisterReceiver(refreshReceiver)
         stopMonitoring()
         teardownVpn()
+        if (activeService === this) {
+            activeService = null
+        }
         super.onDestroy()
     }
 
@@ -171,7 +197,7 @@ class VpnBlockerService : VpnService() {
         try {
             val dbFile: File = applicationContext.getDatabasePath(DATABASE_NAME)
             if (!dbFile.exists()) {
-                synchronized(blocklist) {
+                synchronized(blocklistStateLock) {
                     blocklist.clear()
                 }
                 return
@@ -201,11 +227,8 @@ class VpnBlockerService : VpnService() {
             }
             database.close()
 
-            synchronized(inMemoryBlocklist) {
+            synchronized(blocklistStateLock) {
                 domains.addAll(inMemoryBlocklist)
-            }
-
-            synchronized(blocklist) {
                 blocklist.clear()
                 blocklist.addAll(domains)
             }
@@ -213,6 +236,16 @@ class VpnBlockerService : VpnService() {
         } catch (ex: Exception) {
             Log.e(TAG, "Unable to load blocklist", ex)
         }
+    }
+
+    private fun applyInMemoryBlocklistToRuntime() {
+        val snapshot = mutableSetOf<String>()
+        synchronized(blocklistStateLock) {
+            snapshot.addAll(inMemoryBlocklist)
+            blocklist.clear()
+            blocklist.addAll(snapshot)
+        }
+        Log.d(TAG, "Applied in-memory blocklist entries: ${snapshot.size}")
     }
 
     private fun startMonitoring() {
@@ -285,20 +318,6 @@ class VpnBlockerService : VpnService() {
             Log.e(TAG, "Error closing VPN interface", ex)
         }
         vpnInterface = null
-    }
-
-    private fun findMatchingBlockedDomain(queryDomain: String): String? {
-        val normalizedQuery = canonicalizeDomain(queryDomain)
-        val snapshot = mutableSetOf<String>()
-        synchronized(inMemoryBlocklist) {
-            snapshot.addAll(inMemoryBlocklist)
-        }
-        synchronized(blocklist) {
-            snapshot.addAll(blocklist)
-        }
-        return snapshot.firstOrNull { domain ->
-            normalizedQuery == domain || normalizedQuery.endsWith(".$domain")
-        }
     }
 
     private data class ParsedDnsRequest(
