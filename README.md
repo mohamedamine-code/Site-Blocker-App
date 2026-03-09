@@ -46,6 +46,12 @@ android/
    flutter run
    ```
 
+  To include backend-managed blocked domains at runtime, pass a blocklist API URL:
+
+  ```bash
+  flutter run --dart-define=BLOCKLIST_API_URL=https://your-api.example.com/blocklist
+  ```
+
    The first time you press “Start VPN” (or open the home screen), Android displays a system VPN permission dialog. Accept it to allow the service to run. If you deny it, return to the app and try again after granting permission.
 
 ## Using the App
@@ -54,6 +60,23 @@ android/
 2. Copy the **one-time removal code** that appears. It is never stored in plain text, so losing it means the site stays blocked until you reinstall the app or clear data.
 3. The VPN service begins intercepting requests and compares hosts against the blocklist. Matching traffic is dropped, the Flutter block screen is shown if the app is open, and a notification is posted system-wide.
 4. To unblock, open **Remove Site**, paste the saved code, and confirm. The domain is deleted only when the hashed code matches what is stored.
+
+## Backend Blocklist Format
+
+The app can fetch additional blocked domains from `BLOCKLIST_API_URL` during VPN refresh.
+Supported JSON response shapes:
+
+```json
+["example.com", "social.example"]
+```
+
+```json
+{"blockedDomains": ["example.com", "news.example"]}
+```
+
+```json
+{"domains": ["example.com", "video.example"]}
+```
 
 ## Security Notes
 

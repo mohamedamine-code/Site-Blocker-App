@@ -24,6 +24,8 @@ import java.io.IOException
 import java.io.ByteArrayOutputStream
 import kotlin.math.min
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
 import kotlin.jvm.Volatile
 
 class VpnBlockerService : VpnService() {
@@ -35,7 +37,8 @@ class VpnBlockerService : VpnService() {
         private const val ACTION_REFRESH = "com.example.site_blocker_app.REFRESH_BLOCKLIST"
         private const val DATABASE_NAME = "site_blocker.db"
         private const val TABLE_NAME = "blocked_sites"
-        private const val VPN_DNS_ADDRESS = "10.0.0.2"
+        private const val VPN_INTERFACE_ADDRESS = "10.8.0.1"
+        private const val VPN_DNS_ADDRESS = "10.8.0.2"
         private const val PRIMARY_DNS = "1.1.1.1"
         private const val SECONDARY_DNS = "8.8.8.8"
         private val inMemoryBlocklist = mutableSetOf<String>()
@@ -76,6 +79,7 @@ class VpnBlockerService : VpnService() {
 
     private var vpnInterface: ParcelFileDescriptor? = null
     private var monitorThread: Thread? = null
+    private var dnsQueryExecutor: ExecutorService? = null
     private val running = AtomicBoolean(false)
     private val blocklist = mutableSetOf<String>()
 
@@ -115,8 +119,9 @@ class VpnBlockerService : VpnService() {
         }
         val builder = Builder()
             .setSession("Site Blocker VPN")
-            .addAddress(VPN_DNS_ADDRESS, 32)
-            // Force system DNS into the VPN interface itself.
+            // Interface address and DNS address must be different.
+            .addAddress(VPN_INTERFACE_ADDRESS, 24)
+            // Force system DNS into the VPN interface.
             .addDnsServer(VPN_DNS_ADDRESS)
             .addRoute(VPN_DNS_ADDRESS, 32)
 
@@ -204,6 +209,7 @@ class VpnBlockerService : VpnService() {
                 blocklist.clear()
                 blocklist.addAll(domains)
             }
+            Log.d(TAG, "Loaded blocklist entries: ${domains.size}")
         } catch (ex: Exception) {
             Log.e(TAG, "Unable to load blocklist", ex)
         }
@@ -212,29 +218,26 @@ class VpnBlockerService : VpnService() {
     private fun startMonitoring() {
         stopMonitoring()
         val descriptor = vpnInterface ?: return
+        if (dnsQueryExecutor == null || dnsQueryExecutor?.isShutdown == true) {
+            dnsQueryExecutor = Executors.newFixedThreadPool(4)
+        }
+        val executor = dnsQueryExecutor ?: return
         monitorThread = Thread {
             try {
                 FileInputStream(descriptor.fileDescriptor).use { input ->
                     FileOutputStream(descriptor.fileDescriptor).use { output ->
-                    val buffer = ByteArray(32 * 1024)
-                    while (!Thread.currentThread().isInterrupted && running.get()) {
-                        val length = input.read(buffer)
-                        if (length <= 0) continue
+                        val outputLock = Any()
+                        val buffer = ByteArray(32 * 1024)
+                        while (!Thread.currentThread().isInterrupted && running.get()) {
+                            val length = input.read(buffer)
+                            if (length <= 0) continue
 
-                        val request = parseDnsRequest(buffer, length) ?: continue
-                        val blockedDomain = findMatchingBlockedDomain(request.queryDomain)
-                        val dnsResponse = if (blockedDomain != null) {
-                            notifyBlockedAttempt(blockedDomain)
-                            buildBlockedDnsResponse(request.dnsPayload, request.questionEndOffset)
-                        } else {
-                            forwardDnsQuery(request.dnsPayload)
+                            val packet = buffer.copyOfRange(0, length)
+                            val request = parseDnsRequest(packet, length) ?: continue
+                            executor.execute {
+                                handleDnsPacket(request, output, outputLock)
+                            }
                         }
-
-                        if (dnsResponse != null) {
-                            val ipPacket = buildIpv4UdpResponsePacket(request, dnsResponse)
-                            output.write(ipPacket)
-                        }
-                    }
                     }
                 }
             } catch (ex: IOException) {
@@ -243,9 +246,35 @@ class VpnBlockerService : VpnService() {
         }.apply { start() }
     }
 
+    private fun handleDnsPacket(
+        request: ParsedDnsRequest,
+        output: FileOutputStream,
+        outputLock: Any,
+    ) {
+        val blockedDomain = findMatchingBlockedDomain(request.queryDomain)
+        val dnsResponse = if (blockedDomain != null) {
+            notifyBlockedAttempt(blockedDomain)
+            buildBlockedDnsResponse(request.dnsPayload, request.questionEndOffset)
+        } else {
+            forwardDnsQuery(request.dnsPayload)
+                ?: buildServfailDnsResponse(request.dnsPayload, request.questionEndOffset)
+        }
+
+        val ipPacket = buildIpv4UdpResponsePacket(request, dnsResponse)
+        synchronized(outputLock) {
+            try {
+                output.write(ipPacket)
+            } catch (_: IOException) {
+                // Tun was closed while flushing; ignore.
+            }
+        }
+    }
+
     private fun stopMonitoring() {
         monitorThread?.interrupt()
         monitorThread = null
+        dnsQueryExecutor?.shutdownNow()
+        dnsQueryExecutor = null
     }
 
     private fun teardownVpn() {
@@ -397,6 +426,30 @@ class VpnBlockerService : VpnService() {
         return stream.toByteArray()
     }
 
+    private fun buildServfailDnsResponse(
+        requestPayload: ByteArray,
+        questionEndOffset: Int,
+    ): ByteArray {
+        val stream = ByteArrayOutputStream()
+        stream.write(requestPayload[0].toInt())
+        stream.write(requestPayload[1].toInt())
+        // Standard response + recursion available + SERVFAIL.
+        stream.write(0x81)
+        stream.write(0x82)
+        stream.write(0x00)
+        stream.write(0x01)
+        stream.write(0x00)
+        stream.write(0x00)
+        stream.write(0x00)
+        stream.write(0x00)
+        stream.write(0x00)
+        stream.write(0x00)
+
+        val safeQuestionEnd = questionEndOffset.coerceIn(12, requestPayload.size)
+        stream.write(requestPayload, 12, safeQuestionEnd - 12)
+        return stream.toByteArray()
+    }
+
     private fun buildIpv4UdpResponsePacket(request: ParsedDnsRequest, dnsPayload: ByteArray): ByteArray {
         val ipHeaderLength = 20
         val udpHeaderLength = 8
@@ -471,14 +524,6 @@ class VpnBlockerService : VpnService() {
 
     private fun notifyBlockedAttempt(domain: String) {
         lastBlockedDomain = domain
-        FlutterChannelBridge.sendBlockedDomain(domain)
-        val manager = getSystemService(NotificationManager::class.java)
-        val notification = NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("Blocked site attempt")
-            .setContentText("$domain is blocked on this device.")
-            .setSmallIcon(R.mipmap.ic_launcher)
-            .setAutoCancel(true)
-            .build()
-        manager?.notify(NOTIFICATION_ID + 1, notification)
+        // Intentionally silent: keep blocking active without user-facing message.
     }
 }

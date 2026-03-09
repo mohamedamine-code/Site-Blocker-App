@@ -21,6 +21,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   List<BlockedSite> _sites = [];
   bool _loading = true;
+  bool _privateDnsWarningShown = false;
   String? _errorMessage;
 
   @override
@@ -32,7 +33,6 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _initialize() async {
     await _loadSites();
     await _startVpn();
-    await _vpnService.showPendingBlockedScreen();
   }
 
   Future<void> _loadSites() async {
@@ -57,9 +57,45 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _startVpn() async {
     try {
       await _vpnService.startVpn();
+      await _vpnService.refreshBlocklist();
+      await _warnIfPrivateDnsCanBypassBlocking();
     } catch (error) {
       setState(() => _errorMessage = error.toString());
     }
+  }
+
+  Future<void> _warnIfPrivateDnsCanBypassBlocking() async {
+    if (_privateDnsWarningShown) {
+      return;
+    }
+
+    final mode = await _vpnService.getPrivateDnsMode();
+    if (!mounted) return;
+
+    final isBypassRisk = mode == 'opportunistic' || mode == 'hostname';
+    if (!isBypassRisk) {
+      return;
+    }
+
+    _privateDnsWarningShown = true;
+    await showDialog<void>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Private DNS Can Bypass Blocking'),
+          content: const Text(
+            'Your device has Private DNS enabled. This can bypass DNS-based blocking for some browsers and apps.\n\n'
+            'To get reliable blocking, set Android Private DNS to Off in network settings.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('OK'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   Future<void> _navigateToAddSite() async {

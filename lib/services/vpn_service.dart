@@ -1,7 +1,6 @@
-import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../screens/block_screen.dart';
+import 'backend_blocklist_service.dart';
 import 'database_service.dart';
 
 class VpnServiceController {
@@ -13,25 +12,14 @@ class VpnServiceController {
 
   static const _channel = MethodChannel('site_blocker_vpn');
 
-  GlobalKey<NavigatorState>? _navigatorKey;
-
-  void attachNavigator(GlobalKey<NavigatorState> navigatorKey) {
-    _navigatorKey = navigatorKey;
+  void attachNavigator(dynamic navigatorKey) {
+    // No-op: blocked-site screen flow is intentionally disabled.
   }
 
   Future<void> _handleNativeCallbacks(MethodCall call) async {
     if (call.method == 'blockedDomain') {
-      final blockedUrl = (call.arguments as String?) ?? 'Blocked site';
-      _openBlockScreen(blockedUrl);
+      // Intentionally ignored to avoid showing blocked-site message screens.
     }
-  }
-
-  void _openBlockScreen(String url) {
-    final navigator = _navigatorKey?.currentState;
-    navigator?.pushNamed(
-      BlockScreen.routeName,
-      arguments: url,
-    );
   }
 
   Future<void> startVpn() async {
@@ -44,8 +32,14 @@ class VpnServiceController {
 
   Future<void> refreshBlocklist() async {
     try {
-      final blockedDomains =
-          (await DatabaseService.instance.getBlockedDomains()).toList();
+      final localDomains = await DatabaseService.instance.getBlockedDomains();
+      final backendDomains =
+          await BackendBlocklistService.instance.fetchBlockedDomains();
+      final blockedDomains = {
+        ...localDomains,
+        ...backendDomains,
+      }.toList()
+        ..sort();
       await _channel.invokeMethod('refreshBlocklist', blockedDomains);
     } on PlatformException {
       // The service might not be running yet; ignore and rely on the next refresh.
@@ -61,14 +55,15 @@ class VpnServiceController {
   }
 
   Future<void> showPendingBlockedScreen() async {
+    // Intentionally disabled to avoid message screens for blocked attempts.
+  }
+
+  Future<String> getPrivateDnsMode() async {
     try {
-      final blocked =
-          await _channel.invokeMethod<String?>('getPendingBlockedDomain');
-      if (blocked != null) {
-        _openBlockScreen(blocked);
-      }
+      final mode = await _channel.invokeMethod<String>('getPrivateDnsMode');
+      return mode ?? 'unknown';
     } on PlatformException {
-      // No pending state available.
+      return 'unknown';
     }
   }
 }

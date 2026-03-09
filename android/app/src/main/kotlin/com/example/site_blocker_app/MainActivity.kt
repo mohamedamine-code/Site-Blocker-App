@@ -2,6 +2,8 @@ package com.example.site_blocker_app
 
 import android.content.Intent
 import android.net.VpnService
+import android.os.Build
+import android.provider.Settings
 import androidx.core.content.ContextCompat
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
@@ -55,6 +57,9 @@ class MainActivity : FlutterActivity() {
                     "getPendingBlockedDomain" -> {
                         result.success(VpnBlockerService.consumePendingBlockedDomain())
                     }
+                    "getPrivateDnsMode" -> {
+                        result.success(getPrivateDnsMode())
+                    }
                     else -> result.notImplemented()
                 }
             }
@@ -89,5 +94,17 @@ class MainActivity : FlutterActivity() {
     private fun startVpnService() {
         val intent = Intent(this, VpnBlockerService::class.java)
         ContextCompat.startForegroundService(this, intent)
+    }
+
+    private fun getPrivateDnsMode(): String {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P) {
+            return "unsupported"
+        }
+
+        return try {
+            Settings.Global.getString(contentResolver, "private_dns_mode") ?: "unknown"
+        } catch (_: Exception) {
+            "unknown"
+        }
     }
 }
