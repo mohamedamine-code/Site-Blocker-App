@@ -113,11 +113,19 @@ class DatabaseService {
       value = 'https://$value';
     }
     final uri = Uri.tryParse(value);
-    if (uri == null || (uri.host.isEmpty && uri.path.isEmpty)) {
+    if (uri == null || uri.host.isEmpty) {
       throw ArgumentError('Invalid URL');
     }
-    final host = uri.host.isNotEmpty ? uri.host : uri.path;
-    return host.toLowerCase();
+
+    var host = uri.host.toLowerCase().trim();
+    if (host.startsWith('www.')) {
+      host = host.substring(4);
+    }
+    host = host.replaceAll(RegExp(r'\.+$'), '');
+    if (host.isEmpty || host.contains(' ')) {
+      throw ArgumentError('Invalid URL');
+    }
+    return host;
   }
 
   String _hash(String code) {

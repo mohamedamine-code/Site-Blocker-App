@@ -56,36 +56,40 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _startVpn() async {
     try {
+      final mode = await _vpnService.getPrivateDnsMode();
+      final isBypassRisk = mode == 'opportunistic' || mode == 'hostname';
+      if (isBypassRisk) {
+        await _showPrivateDnsStrictModeDialog();
+        if (!mounted) return;
+        setState(() {
+          _errorMessage =
+              'Strict blocking is disabled while Private DNS is enabled. Turn it off in Android network settings.';
+        });
+        return;
+      }
+
       await _vpnService.startVpn();
       await _vpnService.refreshBlocklist();
-      await _warnIfPrivateDnsCanBypassBlocking();
     } catch (error) {
       setState(() => _errorMessage = error.toString());
     }
   }
 
-  Future<void> _warnIfPrivateDnsCanBypassBlocking() async {
+  Future<void> _showPrivateDnsStrictModeDialog() async {
     if (_privateDnsWarningShown) {
       return;
     }
-
-    final mode = await _vpnService.getPrivateDnsMode();
     if (!mounted) return;
-
-    final isBypassRisk = mode == 'opportunistic' || mode == 'hostname';
-    if (!isBypassRisk) {
-      return;
-    }
 
     _privateDnsWarningShown = true;
     await showDialog<void>(
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('Private DNS Can Bypass Blocking'),
+          title: const Text('Disable Private DNS'),
           content: const Text(
-            'Your device has Private DNS enabled. This can bypass DNS-based blocking for some browsers and apps.\n\n'
-            'To get reliable blocking, set Android Private DNS to Off in network settings.',
+            'Strict URL blocking requires Private DNS to be Off.\n\n'
+            'Go to Android Settings > Network & Internet > Private DNS and set it to Off, then return to the app.',
           ),
           actions: [
             TextButton(

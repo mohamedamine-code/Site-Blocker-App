@@ -289,10 +289,15 @@ class VpnBlockerService : VpnService() {
 
     private fun findMatchingBlockedDomain(queryDomain: String): String? {
         val normalizedQuery = canonicalizeDomain(queryDomain)
+        val snapshot = mutableSetOf<String>()
+        synchronized(inMemoryBlocklist) {
+            snapshot.addAll(inMemoryBlocklist)
+        }
         synchronized(blocklist) {
-            return blocklist.firstOrNull { domain ->
-                normalizedQuery == domain || normalizedQuery.endsWith(".$domain")
-            }
+            snapshot.addAll(blocklist)
+        }
+        return snapshot.firstOrNull { domain ->
+            normalizedQuery == domain || normalizedQuery.endsWith(".$domain")
         }
     }
 

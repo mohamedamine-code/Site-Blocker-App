@@ -23,3 +23,6 @@ After each change, add one new line to the log below.
 | 2026-03-09 | android/app/src/main/kotlin/com/example/site_blocker_app/MainActivity.kt | Added `getPrivateDnsMode` method-channel endpoint. | Let Flutter warn users when Private DNS may bypass blocking. |
 | 2026-03-09 | lib/services/vpn_service.dart | Added `getPrivateDnsMode()` bridge method. | Expose Android Private DNS diagnostics to UI logic. |
 | 2026-03-09 | lib/screens/home_screen.dart | Added warning dialog when Private DNS is enabled. | Explain why blocked domains may still open in some apps/browsers. |
+| 2026-03-09 | lib/services/database_service.dart | Tightened URL normalization to require valid host input and canonicalize domains. | Prevent invalid/path-only entries and ensure strict host-based blocking rules. |
+| 2026-03-09 | lib/screens/home_screen.dart | Changed Private DNS handling to hard-stop strict mode instead of best-effort warning. | Enforce deterministic blocking by preventing known DNS bypass conditions. |
+| 2026-03-09 | android/app/src/main/kotlin/com/example/site_blocker_app/VpnBlockerService.kt | Switched domain matching to combined in-memory + persisted snapshot. | Remove transient allow windows during blocklist refresh races. |
