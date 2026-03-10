@@ -1,57 +1,55 @@
 import 'package:flutter/material.dart';
 
-class SecurityAppBar extends StatelessWidget implements PreferredSizeWidget {
-  const SecurityAppBar({
+class SecurityTopBar extends StatelessWidget {
+  const SecurityTopBar({
     super.key,
-    required this.title,
     required this.isProtected,
     this.actions,
-    this.automaticallyImplyLeading = true,
+    this.showBackButton = true,
   });
 
-  final String title;
   final bool isProtected;
   final List<Widget>? actions;
-  final bool automaticallyImplyLeading;
+  final bool showBackButton;
 
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
+    final canPop = Navigator.of(context).canPop();
 
-    return AppBar(
-      automaticallyImplyLeading: automaticallyImplyLeading,
-      titleSpacing: 16,
-      title: Row(
-        children: [
-          Container(
-            width: 32,
-            height: 32,
-            decoration: BoxDecoration(
-              color: colors.primary.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(10),
+    return SafeArea(
+      bottom: false,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+        child: Row(
+          children: [
+            if (showBackButton && canPop)
+              TopBarActionButton(
+                onPressed: () => Navigator.of(context).pop(),
+                icon: Icons.arrow_back_rounded,
+                tooltip: 'Back',
+              ),
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: colors.primary.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(
+                Icons.shield_rounded,
+                color: colors.primary,
+                size: 20,
+              ),
             ),
-            child: Icon(
-              Icons.shield_rounded,
-              color: colors.primary,
-              size: 20,
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(child: Text(title, overflow: TextOverflow.ellipsis)),
-        ],
-      ),
-      actions: [
-        Padding(
-          padding: const EdgeInsets.only(right: 8),
-          child: _ProtectionBadge(isProtected: isProtected),
+            const Spacer(),
+            _ProtectionBadge(isProtected: isProtected),
+            ...?actions,
+          ],
         ),
-        ...?actions,
-      ],
+      ),
     );
   }
-
-  @override
-  Size get preferredSize => const Size.fromHeight(kToolbarHeight);
 }
 
 class _ProtectionBadge extends StatelessWidget {
@@ -75,6 +73,7 @@ class _ProtectionBadge extends StatelessWidget {
       },
       child: Container(
         key: ValueKey<bool>(isProtected),
+        margin: const EdgeInsets.only(right: 8),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(999),
@@ -91,6 +90,42 @@ class _ProtectionBadge extends StatelessWidget {
                 fontSize: 11,
                 color: isProtected ? colors.primary : colors.error,
               ),
+        ),
+      ),
+    );
+  }
+}
+
+class TopBarActionButton extends StatelessWidget {
+  const TopBarActionButton({
+    super.key,
+    required this.icon,
+    required this.onPressed,
+    this.tooltip,
+  });
+
+  final IconData icon;
+  final VoidCallback onPressed;
+  final String? tooltip;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+
+    return Tooltip(
+      message: tooltip,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onPressed,
+        child: Container(
+          width: 48,
+          height: 48,
+          alignment: Alignment.center,
+          child: Icon(
+            icon,
+            size: 22,
+            color: colors.onSurface,
+          ),
         ),
       ),
     );

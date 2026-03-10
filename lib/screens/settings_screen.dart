@@ -56,81 +56,86 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final colors = Theme.of(context).colorScheme;
 
     return Scaffold(
-      appBar: SecurityAppBar(
-        title: 'Settings',
-        isProtected: _isProtected,
-      ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
+      body: Column(
         children: [
-          Card(
-            child: Column(
+          SecurityTopBar(
+            isProtected: _isProtected,
+          ),
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.all(16),
               children: [
-                SwitchListTile(
-                  value: _autoStart,
-                  onChanged: (value) async {
-                    HapticFeedback.selectionClick();
-                    await AppSettingsService.instance.setVpnAutoStartEnabled(value);
-                    if (!mounted) {
-                      return;
-                    }
-                    setState(() {
-                      _autoStart = value;
-                    });
-                  },
-                  title: const Text('VPN auto-start'),
-                  subtitle: Text(
-                    'Start protection automatically on app launch.',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: colors.onSurfaceVariant,
+                Card(
+                  child: Column(
+                    children: [
+                      SwitchListTile(
+                        value: _autoStart,
+                        onChanged: (value) async {
+                          HapticFeedback.selectionClick();
+                          await AppSettingsService.instance.setVpnAutoStartEnabled(value);
+                          if (!mounted) {
+                            return;
+                          }
+                          setState(() {
+                            _autoStart = value;
+                          });
+                        },
+                        title: const Text('VPN auto-start'),
+                        subtitle: Text(
+                          'Start protection automatically on app launch.',
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                color: colors.onSurfaceVariant,
+                              ),
                         ),
+                      ),
+                      Divider(color: colors.outlineVariant, height: 1),
+                      SwitchListTile(
+                        value: _darkTheme,
+                        onChanged: (value) {
+                          HapticFeedback.selectionClick();
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Dark mode is the only available theme for now.')),
+                          );
+                          setState(() {
+                            _darkTheme = true;
+                          });
+                        },
+                        title: const Text('Dark theme'),
+                        subtitle: Text(
+                          'Security-focused dark visual mode.',
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                color: colors.onSurfaceVariant,
+                              ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                Divider(color: colors.outlineVariant, height: 1),
-                SwitchListTile(
-                  value: _darkTheme,
-                  onChanged: (value) {
-                    HapticFeedback.selectionClick();
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Dark mode is the only available theme for now.')),
-                    );
-                    setState(() {
-                      _darkTheme = true;
-                    });
-                  },
-                  title: const Text('Dark theme'),
-                  subtitle: Text(
-                    'Security-focused dark visual mode.',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: colors.onSurfaceVariant,
-                        ),
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: _exporting ? null : _exportBlocklist,
+                    icon: _exporting
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.upload_file_outlined),
+                    label: const Text('Export blocklist'),
                   ),
+                ),
+                const SizedBox(height: 24),
+                Text(
+                  _versionLabel,
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                        color: colors.onSurfaceVariant,
+                      ),
                 ),
               ],
             ),
-          ),
-          const SizedBox(height: 16),
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton.icon(
-              onPressed: _exporting ? null : _exportBlocklist,
-              icon: _exporting
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.upload_file_outlined),
-              label: const Text('Export blocklist'),
-            ),
-          ),
-          const SizedBox(height: 24),
-          Text(
-            _versionLabel,
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  color: colors.onSurfaceVariant,
-                ),
           ),
         ],
       ),

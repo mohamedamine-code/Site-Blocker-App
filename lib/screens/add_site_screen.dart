@@ -53,121 +53,127 @@ class _AddSiteScreenState extends State<AddSiteScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: SecurityAppBar(
-        title: 'Add Site',
-        isProtected: _isProtected,
-      ),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Form(
-            key: _formKey,
-            child: Align(
-              alignment: Alignment.bottomCenter,
-              // Designer note: Elevated bottom-sheet layout keeps focus on one decisive action.
-              child: Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Block a domain', style: Theme.of(context).textTheme.titleLarge),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Type a domain like youtube.com. Protocols and paths are ignored automatically.',
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+      body: Column(
+        children: [
+          SecurityTopBar(
+            isProtected: _isProtected,
+          ),
+          Expanded(
+            child: SafeArea(
+              top: false,
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Form(
+                  key: _formKey,
+                  child: Align(
+                    alignment: Alignment.bottomCenter,
+                    // Designer note: Elevated bottom-sheet layout keeps focus on one decisive action.
+                    child: Card(
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Block a domain', style: Theme.of(context).textTheme.titleLarge),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Type a domain like youtube.com. Protocols and paths are ignored automatically.',
+                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                  ),
                             ),
-                      ),
-                      const SizedBox(height: 16),
-                      TextFormField(
-                        controller: _urlController,
-                        decoration: const InputDecoration(
-                          prefixIcon: Icon(Icons.public),
-                          labelText: 'Site URL or domain',
-                          hintText: 'example.com',
-                        ),
-                        keyboardType: TextInputType.url,
-                        validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return 'Please enter a site.';
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'Removal code',
-                        style: Theme.of(context).textTheme.labelLarge,
-                      ),
-                      const SizedBox(height: 8),
-                      InkWell(
-                        borderRadius: BorderRadius.circular(12),
-                        onTap: _copyRemovalCode,
-                        child: Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                          decoration: BoxDecoration(
-                            color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
-                          ),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  _generatedCode,
-                                  style: monoTextStyle(context, size: 15, weight: FontWeight.w700),
+                            const SizedBox(height: 16),
+                            TextFormField(
+                              controller: _urlController,
+                              decoration: const InputDecoration(
+                                prefixIcon: Icon(Icons.public),
+                                labelText: 'Site URL or domain',
+                                hintText: 'example.com',
+                              ),
+                              keyboardType: TextInputType.url,
+                              validator: (value) {
+                                if (value == null || value.trim().isEmpty) {
+                                  return 'Please enter a site.';
+                                }
+                                return null;
+                              },
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              'Removal code',
+                              style: Theme.of(context).textTheme.labelLarge,
+                            ),
+                            const SizedBox(height: 8),
+                            InkWell(
+                              borderRadius: BorderRadius.circular(12),
+                              onTap: _copyRemovalCode,
+                              child: Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                                decoration: BoxDecoration(
+                                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        _generatedCode,
+                                        style: monoTextStyle(context, size: 15, weight: FontWeight.w700),
+                                      ),
+                                    ),
+                                    Icon(
+                                      Icons.copy_outlined,
+                                      size: 18,
+                                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                    ),
+                                  ],
                                 ),
                               ),
-                              Icon(
-                                Icons.copy_outlined,
-                                size: 18,
-                                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Tap to copy and store this code safely. You need it to remove the block.',
+                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                  ),
+                            ),
+                            if (_error != null) ...[
+                              const SizedBox(height: 16),
+                              ErrorBanner(
+                                message: _error!,
+                                onRetry: _handleSubmit,
                               ),
                             ],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Tap to copy and store this code safely. You need it to remove the block.',
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            const SizedBox(height: 16),
+                            SizedBox(
+                              width: double.infinity,
+                              child: FilledButton(
+                                onPressed: _submitting ? null : _handleSubmit,
+                                child: _submitting
+                                    ? const SizedBox(
+                                        width: 20,
+                                        height: 20,
+                                        child: CircularProgressIndicator(strokeWidth: 2),
+                                      )
+                                    : const Text('Confirm block'),
+                              ),
                             ),
-                      ),
-                      if (_error != null) ...[
-                        const SizedBox(height: 16),
-                        ErrorBanner(
-                          message: _error!,
-                          onRetry: _handleSubmit,
-                        ),
-                      ],
-                      const SizedBox(height: 16),
-                      SizedBox(
-                        width: double.infinity,
-                        child: FilledButton(
-                          onPressed: _submitting ? null : _handleSubmit,
-                          child: _submitting
-                              ? const SizedBox(
-                                  width: 20,
-                                  height: 20,
-                                  child: CircularProgressIndicator(strokeWidth: 2),
-                                )
-                              : const Text('Confirm block'),
+                          ],
                         ),
                       ),
-                    ],
+                    )
+                        .animate()
+                        .slideY(begin: 0.08, end: 0, duration: 320.ms, curve: Curves.easeOutCubic)
+                        .fadeIn(duration: 280.ms),
                   ),
                 ),
-              )
-                  .animate()
-                  .slideY(begin: 0.08, end: 0, duration: 320.ms, curve: Curves.easeOutCubic)
-                  .fadeIn(duration: 280.ms),
+              ),
             ),
           ),
-        ),
+        ],
       ),
     );
   }

@@ -91,60 +91,65 @@ class _BlockedSiteInfoScreenState extends State<BlockedSiteInfoScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: SecurityAppBar(
-        title: 'Blocked Sites',
-        isProtected: _isProtected,
-        actions: [
-          IconButton(
-            tooltip: 'Manual remove',
-            onPressed: _openRemoveScreen,
-            icon: const Icon(Icons.lock_open_outlined),
+      body: Column(
+        children: [
+          SecurityTopBar(
+            isProtected: _isProtected,
+            actions: [
+              TopBarActionButton(
+                tooltip: 'Manual remove',
+                onPressed: _openRemoveScreen,
+                icon: Icons.lock_open_outlined,
+              ),
+            ],
+          ),
+          Expanded(
+            child: RefreshIndicator(
+              onRefresh: _refreshSites,
+              child: ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.all(16),
+                children: [
+                  Row(
+                    children: [
+                      ActionTile(
+                        label: 'Add site',
+                        icon: Icons.add_circle_outline,
+                        onTap: _openAddSite,
+                      ),
+                      const SizedBox(width: 8),
+                      ActionTile(
+                        label: 'Remove by code',
+                        icon: Icons.key_outlined,
+                        color: Theme.of(context).colorScheme.error,
+                        onTap: _openRemoveScreen,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  if (_errorMessage != null)
+                    ErrorBanner(
+                      message: _errorMessage!,
+                      onRetry: _loadSites,
+                    )
+                  else if (_loading)
+                    const Padding(
+                      padding: EdgeInsets.only(top: 48),
+                      child: Center(child: CircularProgressIndicator()),
+                    )
+                  else if (_sites.isEmpty)
+                    _buildEmptyState()
+                  else
+                    ..._sites.asMap().entries.map((entry) {
+                      final index = entry.key;
+                      final site = entry.value;
+                      return _buildAnimatedSiteTile(site, index);
+                    }),
+                ],
+              ),
+            ),
           ),
         ],
-      ),
-      body: RefreshIndicator(
-        onRefresh: _refreshSites,
-        child: ListView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.all(16),
-          children: [
-            Row(
-              children: [
-                ActionTile(
-                  label: 'Add site',
-                  icon: Icons.add_circle_outline,
-                  onTap: _openAddSite,
-                ),
-                const SizedBox(width: 8),
-                ActionTile(
-                  label: 'Remove by code',
-                  icon: Icons.key_outlined,
-                  color: Theme.of(context).colorScheme.error,
-                  onTap: _openRemoveScreen,
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            if (_errorMessage != null)
-              ErrorBanner(
-                message: _errorMessage!,
-                onRetry: _loadSites,
-              )
-            else if (_loading)
-              const Padding(
-                padding: EdgeInsets.only(top: 48),
-                child: Center(child: CircularProgressIndicator()),
-              )
-            else if (_sites.isEmpty)
-              _buildEmptyState()
-            else
-              ..._sites.asMap().entries.map((entry) {
-                final index = entry.key;
-                final site = entry.value;
-                return _buildAnimatedSiteTile(site, index);
-              }),
-          ],
-        ),
       ),
     );
   }

@@ -94,83 +94,90 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: SecurityAppBar(
-        title: 'Site Blocker',
-        isProtected: _isProtected,
-        automaticallyImplyLeading: false,
-        actions: [
-          IconButton(
-            tooltip: 'Settings',
-            onPressed: _openSettings,
-            icon: const Icon(Icons.settings_outlined),
-          ),
-          IconButton(
-            tooltip: 'Blocked sites',
-            onPressed: _openBlockedSiteInfo,
-            icon: const Icon(Icons.list_alt_outlined),
-          ),
-        ],
-      ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _openAddSite,
         icon: const Icon(Icons.add),
         label: const Text('Add site'),
       ),
-      body: Stack(
+      body: Column(
         children: [
-          const Positioned.fill(child: HexGridBackground()),
-          Positioned.fill(
-            child: _loading
-                ? const Center(child: CircularProgressIndicator())
-                : _errorMessage != null
-                    ? _buildErrorState()
-                    : RefreshIndicator(
-                        onRefresh: _loadStats,
-                        child: ListView(
-                          physics: const AlwaysScrollableScrollPhysics(),
-                          padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
-                          children: [
-                            _buildProtectionHero(),
-                            const SizedBox(height: 16),
-                            _buildCounterCard(),
-                            const SizedBox(height: 16),
-                            _buildActionRow(),
-                            const SizedBox(height: 16),
-                            Wrap(
-                              spacing: 8,
-                              runSpacing: 8,
-                              children: [
-                                MetricChip(
-                                  label: 'Blocked today',
-                                  value: '${_todaySummary.blockedCount}',
-                                  icon: Icons.block,
-                                ),
-                                MetricChip(
-                                  label: 'Last blocked',
-                                  value: _todaySummary.lastBlockedAt == null
-                                      ? '--'
-                                      : _timeLabel(_todaySummary.lastBlockedAt!),
-                                  icon: Icons.schedule,
-                                ),
-                                MetricChip(
-                                  label: 'Clean streak',
-                                  value: '$_cleanStreak day(s)',
-                                  icon: Icons.local_fire_department_outlined,
-                                ),
-                              ],
+          SecurityTopBar(
+            isProtected: _isProtected,
+            showBackButton: false,
+            actions: [
+              TopBarActionButton(
+                tooltip: 'Settings',
+                onPressed: _openSettings,
+                icon: Icons.settings_outlined,
+              ),
+              TopBarActionButton(
+                tooltip: 'Blocked sites',
+                onPressed: _openBlockedSiteInfo,
+                icon: Icons.list_alt_outlined,
+              ),
+            ],
+          ),
+          Expanded(
+            child: Stack(
+              children: [
+                const Positioned.fill(child: HexGridBackground()),
+                Positioned.fill(
+                  child: _loading
+                      ? const Center(child: CircularProgressIndicator())
+                      : _errorMessage != null
+                          ? _buildErrorState()
+                          : RefreshIndicator(
+                              onRefresh: _loadStats,
+                              child: ListView(
+                                physics: const AlwaysScrollableScrollPhysics(),
+                                padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
+                                children: [
+                                  _buildCalendarHeader(context),
+                                  const SizedBox(height: 8),
+                                  _buildLegend(context),
+                                  const SizedBox(height: 8),
+                                  Card(
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(16),
+                                      child: _buildCalendarGrid(context),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 24),
+                                  _buildProtectionHero(),
+                                  const SizedBox(height: 16),
+                                  _buildCounterCard(),
+                                  const SizedBox(height: 16),
+                                  _buildActionRow(),
+                                  const SizedBox(height: 16),
+                                  Wrap(
+                                    spacing: 8,
+                                    runSpacing: 8,
+                                    children: [
+                                      MetricChip(
+                                        label: 'Blocked today',
+                                        value: '${_todaySummary.blockedCount}',
+                                        icon: Icons.block,
+                                      ),
+                                      MetricChip(
+                                        label: 'Last blocked',
+                                        value: _todaySummary.lastBlockedAt == null
+                                            ? '--'
+                                            : _timeLabel(_todaySummary.lastBlockedAt!),
+                                        icon: Icons.schedule,
+                                      ),
+                                      MetricChip(
+                                        label: 'Clean streak',
+                                        value: '$_cleanStreak day(s)',
+                                        icon: Icons.local_fire_department_outlined,
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
                             ),
-                            const SizedBox(height: 24),
-                            _buildCalendarHeader(context),
-                            const SizedBox(height: 8),
-                            _buildLegend(context),
-                            const SizedBox(height: 8),
-                            Card(child: Padding(
-                              padding: const EdgeInsets.all(16),
-                              child: _buildCalendarGrid(context),
-                            )),
-                          ],
-                        ),
-                      ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
