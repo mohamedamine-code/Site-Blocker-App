@@ -42,37 +42,37 @@ ThemeData buildAppTheme() {
     surfaceContainerHighest: AppColors.background,
   );
 
-  final baseTextTheme = GoogleFonts.interTextTheme().apply(
+  final baseTextTheme = GoogleFonts.cairoTextTheme().apply(
     bodyColor: AppColors.dark,
     displayColor: AppColors.dark,
   );
 
   final textTheme = baseTextTheme.copyWith(
-    headlineMedium: GoogleFonts.syne(
+    headlineMedium: GoogleFonts.tajawal(
       fontWeight: FontWeight.w700,
       color: AppColors.dark,
       fontSize: 28,
       letterSpacing: 0.2,
     ),
-    titleLarge: GoogleFonts.syne(
+    titleLarge: GoogleFonts.tajawal(
       fontWeight: FontWeight.w700,
       color: AppColors.dark,
       fontSize: 22,
       letterSpacing: 0.2,
     ),
-    titleMedium: GoogleFonts.syne(
+    titleMedium: GoogleFonts.tajawal(
       fontWeight: FontWeight.w700,
       color: AppColors.dark,
       fontSize: 18,
       letterSpacing: 0.2,
     ),
-    bodyMedium: GoogleFonts.inter(
+    bodyMedium: GoogleFonts.cairo(
       fontWeight: FontWeight.w500,
       color: AppColors.dark,
       fontSize: 15,
       height: 1.35,
     ),
-    labelLarge: GoogleFonts.inter(
+    labelLarge: GoogleFonts.cairo(
       fontWeight: FontWeight.w600,
       color: AppColors.dark,
       fontSize: 14,
@@ -124,11 +124,11 @@ ThemeData buildAppTheme() {
         borderRadius: BorderRadius.circular(12),
         borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
       ),
-      hintStyle: GoogleFonts.inter(
+      hintStyle: GoogleFonts.cairo(
         color: AppColors.dark.withValues(alpha: 0.72),
         fontWeight: FontWeight.w500,
       ),
-      labelStyle: GoogleFonts.inter(
+      labelStyle: GoogleFonts.cairo(
         color: AppColors.dark.withValues(alpha: 0.72),
         fontWeight: FontWeight.w600,
       ),
@@ -139,7 +139,7 @@ ThemeData buildAppTheme() {
         backgroundColor: AppColors.primary,
         foregroundColor: AppColors.dark,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        textStyle: GoogleFonts.inter(fontWeight: FontWeight.w700),
+        textStyle: GoogleFonts.cairo(fontWeight: FontWeight.w700),
       ),
     ),
     outlinedButtonTheme: OutlinedButtonThemeData(
@@ -148,14 +148,14 @@ ThemeData buildAppTheme() {
         foregroundColor: AppColors.dark,
         side: BorderSide(color: AppColors.dark.withValues(alpha: 0.35)),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        textStyle: GoogleFonts.inter(fontWeight: FontWeight.w700),
+        textStyle: GoogleFonts.cairo(fontWeight: FontWeight.w700),
       ),
     ),
     chipTheme: ChipThemeData(
       backgroundColor: AppColors.background,
       selectedColor: AppColors.surface,
       side: BorderSide(color: AppColors.dark.withValues(alpha: 0.35)),
-      labelStyle: GoogleFonts.inter(
+      labelStyle: GoogleFonts.cairo(
         color: AppColors.dark,
         fontWeight: FontWeight.w600,
       ),
@@ -166,7 +166,7 @@ ThemeData buildAppTheme() {
     ),
     snackBarTheme: SnackBarThemeData(
       backgroundColor: AppColors.surface,
-      contentTextStyle: GoogleFonts.inter(
+      contentTextStyle: GoogleFonts.cairo(
         color: AppColors.dark,
         fontWeight: FontWeight.w600,
       ),

@@ -83,7 +83,7 @@ class _RemoveSiteScreenState extends State<RemoveSiteScreen> {
                             const SizedBox(width: 12),
                             Expanded(
                               child: Text(
-                                'High-friction removal',
+                                'إزالة صعبة',
                                 style: Theme.of(context).textTheme.titleMedium,
                               ),
                             ),
@@ -91,12 +91,12 @@ class _RemoveSiteScreenState extends State<RemoveSiteScreen> {
                         ),
                         const SizedBox(height: 16),
                         Text(
-                          'This action cannot be undone',
+                          'لا يمكن التراجع عن هذا الإجراء',
                           style: Theme.of(context).textTheme.titleMedium?.copyWith(color: colors.error),
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          'Enter the exact 16-character removal code generated when the site was blocked.',
+                          'أدخل رمز الإزالة المكون من 16 حرفاً الذي تم إنشاؤه عند حجب الموقع.',
                           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                                 color: colors.onSurfaceVariant,
                               ),
@@ -105,12 +105,13 @@ class _RemoveSiteScreenState extends State<RemoveSiteScreen> {
                         TextField(
                           controller: _codeController,
                           style: monoTextStyle(context, size: 15),
+                          textDirection: TextDirection.ltr,
                           maxLength: 16,
                           decoration: InputDecoration(
-                            labelText: 'Removal code',
+                            labelText: 'رمز الإزالة',
                             hintText: 'XXXXXXXXXXXXXXXX',
                             suffixIcon: IconButton(
-                              tooltip: 'Paste',
+                              tooltip: 'لصق',
                               icon: const Icon(Icons.paste),
                               onPressed: _processing
                                   ? null
@@ -164,7 +165,7 @@ class _RemoveSiteScreenState extends State<RemoveSiteScreen> {
                             height: 20,
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
-                        : const Text('Confirm removal'),
+                        : const Text('تأكيد الإزالة'),
                   ),
                 ),
               ],
@@ -187,7 +188,7 @@ class _RemoveSiteScreenState extends State<RemoveSiteScreen> {
     if (code.length != 16) {
       _triggerWrongCodeFeedback();
       setState(() {
-        _error = 'Code must be exactly 16 characters.';
+        _error = 'يجب أن يكون الرمز 16 حرفاً بالضبط.';
       });
       return;
     }
@@ -203,7 +204,7 @@ class _RemoveSiteScreenState extends State<RemoveSiteScreen> {
       if (!removed) {
         _triggerWrongCodeFeedback();
         setState(() {
-          _error = 'Wrong code. No blocked site matched this code.';
+          _error = 'الرمز غير صحيح. لا يوجد موقع محجوب يطابق هذا الرمز.';
         });
         return;
       }

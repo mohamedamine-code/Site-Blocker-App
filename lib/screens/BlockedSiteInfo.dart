@@ -97,7 +97,7 @@ class _BlockedSiteInfoScreenState extends State<BlockedSiteInfoScreen> {
             isProtected: _isProtected,
             actions: [
               TopBarActionButton(
-                tooltip: 'Manual remove',
+                tooltip: 'إزالة يدوية',
                 onPressed: _openRemoveScreen,
                 icon: Icons.lock_open_outlined,
               ),
@@ -113,13 +113,13 @@ class _BlockedSiteInfoScreenState extends State<BlockedSiteInfoScreen> {
                   Row(
                     children: [
                       ActionTile(
-                        label: 'Add site',
+                        label: 'إضافة موقع',
                         icon: Icons.add_circle_outline,
                         onTap: _openAddSite,
                       ),
                       const SizedBox(width: 8),
                       ActionTile(
-                        label: 'Remove by code',
+                        label: 'إزالة بالرمز',
                         icon: Icons.key_outlined,
                         color: Theme.of(context).colorScheme.error,
                         onTap: _openRemoveScreen,
@@ -168,13 +168,13 @@ class _BlockedSiteInfoScreenState extends State<BlockedSiteInfoScreen> {
             ),
             const SizedBox(height: 16),
             Text(
-              'No sites blocked yet',
+              'لا توجد مواقع محجوبة بعد',
               style: Theme.of(context).textTheme.titleMedium,
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 8),
             Text(
-              'Add your first distracting domain to activate focus protection.',
+              'أضف أول نطاق مشتت لبدء الحماية والتركيز.',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
@@ -186,7 +186,7 @@ class _BlockedSiteInfoScreenState extends State<BlockedSiteInfoScreen> {
               child: FilledButton.icon(
                 onPressed: _openAddSite,
                 icon: const Icon(Icons.add),
-                label: const Text('Add blocked site'),
+                label: const Text('إضافة موقع محجوب'),
               ),
             ),
           ],
@@ -226,7 +226,8 @@ class _BlockedSiteInfoScreenState extends State<BlockedSiteInfoScreen> {
             leading: _buildFaviconPlaceholder(site.url),
             title: Text(
               site.url,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(fontSize: 16),
+              style: monoTextStyle(context, size: 15, weight: FontWeight.w700),
+              textDirection: TextDirection.ltr,
             ),
             subtitle: Padding(
               padding: const EdgeInsets.only(top: 8),
@@ -244,9 +245,12 @@ class _BlockedSiteInfoScreenState extends State<BlockedSiteInfoScreen> {
                       ),
                       const SizedBox(width: 8),
                       Expanded(
-                        child: Text(
-                          codePreview,
-                          style: monoTextStyle(context),
+                        child: Directionality(
+                          textDirection: TextDirection.ltr,
+                          child: Text(
+                            codePreview,
+                            style: monoTextStyle(context),
+                          ),
                         ),
                       ),
                     ],
@@ -398,7 +402,7 @@ class _CodeConfirmationSheetState extends State<_CodeConfirmationSheet> {
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  'Confirm removal',
+                  'تأكيد الإزالة',
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
               ),
@@ -406,20 +410,29 @@ class _CodeConfirmationSheetState extends State<_CodeConfirmationSheet> {
           ),
           const SizedBox(height: 16),
           Text(
-            'This action cannot be undone',
+            'لا يمكن التراجع عن هذا الإجراء',
             style: Theme.of(context).textTheme.titleMedium?.copyWith(color: colors.error),
           ),
           const SizedBox(height: 8),
           Text(
-            'Enter the exact 16-character removal code for ${widget.site.url}.',
+            'أدخل رمز الإزالة المكون من 16 حرفاً للموقع:',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: colors.onSurfaceVariant),
+          ),
+          const SizedBox(height: 8),
+          Directionality(
+            textDirection: TextDirection.ltr,
+            child: Text(
+              widget.site.url,
+              style: monoTextStyle(context, size: 14, weight: FontWeight.w700),
+            ),
           ),
           const SizedBox(height: 16),
           TextField(
             controller: _controller,
             style: monoTextStyle(context, size: 15),
+            textDirection: TextDirection.ltr,
             decoration: const InputDecoration(
-              hintText: 'Enter removal code',
+              hintText: 'أدخل رمز الإزالة',
             ),
             onChanged: (_) => setState(() {}),
             onSubmitted: (_) {
@@ -445,7 +458,7 @@ class _CodeConfirmationSheetState extends State<_CodeConfirmationSheet> {
                       height: 20,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : const Text('Remove site'),
+                  : const Text('إزالة الموقع'),
             ),
           ),
         ],

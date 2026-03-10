@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'screens/BlockedSiteInfo.dart';
 import 'screens/add_site_screen.dart';
@@ -54,9 +55,20 @@ class _SiteBlockerAppState extends State<SiteBlockerApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Site Blocker',
+      title: 'حاجب المواقع',
       navigatorKey: appNavigatorKey,
       theme: buildAppTheme(),
+      locale: const Locale('ar'),
+      supportedLocales: const [Locale('ar')],
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      builder: (context, child) => Directionality(
+        textDirection: TextDirection.rtl,
+        child: child!,
+      ),
       initialRoute: HomeScreen.routeName,
       onGenerateRoute: (settings) {
         switch (settings.name) {
@@ -86,7 +98,7 @@ class _SiteBlockerAppState extends State<SiteBlockerApp> {
               builder: (_) => const SettingsScreen(),
             );
           case BlockScreen.routeName:
-            final url = settings.arguments as String? ?? 'Blocked site';
+            final url = settings.arguments as String? ?? 'موقع محجوب';
             return MaterialPageRoute(
               settings: settings,
               builder: (_) => BlockScreen(url: url),

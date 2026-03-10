@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../services/vpn_service.dart';
+import '../theme/app_theme.dart';
 import '../widgets/security_app_bar.dart';
 
 class BlockScreen extends StatefulWidget {
@@ -67,19 +68,22 @@ class _BlockScreenState extends State<BlockScreen> {
                         ),
                         const SizedBox(height: 16),
                         Text(
-                          'This site is blocked',
+                          'تم حجب هذا الموقع',
                           style: Theme.of(context).textTheme.titleLarge,
                           textAlign: TextAlign.center,
                         ),
                         const SizedBox(height: 8),
-                        Text(
-                          widget.url,
-                          style: Theme.of(context).textTheme.bodyMedium,
-                          textAlign: TextAlign.center,
+                        Directionality(
+                          textDirection: TextDirection.ltr,
+                          child: Text(
+                            widget.url,
+                            style: monoTextStyle(context, size: 14, weight: FontWeight.w700),
+                            textAlign: TextAlign.center,
+                          ),
                         ),
                         const SizedBox(height: 16),
                         Text(
-                          'Use your removal code from the app only when you intentionally want access restored.',
+                          'استخدم رمز الإزالة من التطبيق فقط عندما ترغب عمداً في استعادة الوصول.',
                           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                                 color: colors.onSurfaceVariant,
                               ),
@@ -90,7 +94,7 @@ class _BlockScreenState extends State<BlockScreen> {
                           width: double.infinity,
                           child: OutlinedButton(
                             onPressed: () => Navigator.of(context).pop(),
-                            child: const Text('Go back'),
+                            child: const Text('رجوع'),
                           ),
                         ),
                       ],

@@ -21,7 +21,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _darkTheme = true;
   bool _isProtected = true;
   bool _exporting = false;
-  String _versionLabel = 'v--';
+  String _versionLabel = 'الإصدار --';
 
   @override
   void initState() {
@@ -46,7 +46,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     setState(() {
       _isProtected = dnsMode != 'opportunistic' && dnsMode != 'hostname';
-      _versionLabel = 'v${packageInfo.version} (${packageInfo.buildNumber})';
+      _versionLabel = 'الإصدار ${packageInfo.version} (${packageInfo.buildNumber})';
       _autoStart = autoStartEnabled;
     });
   }
@@ -80,9 +80,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             _autoStart = value;
                           });
                         },
-                        title: const Text('VPN auto-start'),
+                        title: const Text('تشغيل VPN تلقائياً'),
                         subtitle: Text(
-                          'Start protection automatically on app launch.',
+                          'ابدأ الحماية تلقائياً عند تشغيل التطبيق.',
                           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                                 color: colors.onSurfaceVariant,
                               ),
@@ -94,15 +94,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         onChanged: (value) {
                           HapticFeedback.selectionClick();
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Dark mode is the only available theme for now.')),
+                            const SnackBar(content: Text('الوضع الداكن هو السمة المتاحة حالياً فقط.')),
                           );
                           setState(() {
                             _darkTheme = true;
                           });
                         },
-                        title: const Text('Dark theme'),
+                        title: const Text('السمة الداكنة'),
                         subtitle: Text(
-                          'Security-focused dark visual mode.',
+                          'وضع بصري داكن يركز على الأمان.',
                           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                                 color: colors.onSurfaceVariant,
                               ),
@@ -123,7 +123,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
                         : const Icon(Icons.upload_file_outlined),
-                    label: const Text('Export blocklist'),
+                    label: const Text('تصدير القائمة'),
                   ),
                 ),
                 const SizedBox(height: 24),
@@ -162,14 +162,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
         return;
       }
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Blocklist CSV copied to clipboard.')),
+        const SnackBar(content: Text('تم نسخ قائمة الحجب بصيغة CSV.')),
       );
     } catch (error) {
       if (!mounted) {
         return;
       }
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Export failed: $error')),
+        SnackBar(content: Text('فشل التصدير: $error')),
       );
     } finally {
       if (mounted) {

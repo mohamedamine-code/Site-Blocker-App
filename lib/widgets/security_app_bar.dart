@@ -26,8 +26,8 @@ class SecurityTopBar extends StatelessWidget {
             if (showBackButton && canPop)
               TopBarActionButton(
                 onPressed: () => Navigator.of(context).pop(),
-                icon: Icons.arrow_back_rounded,
-                tooltip: 'Back',
+                icon: Icons.arrow_forward_rounded,
+                tooltip: 'رجوع',
               ),
             Container(
               width: 36,
@@ -85,7 +85,7 @@ class _ProtectionBadge extends StatelessWidget {
           ),
         ),
         child: Text(
-          isProtected ? 'PROTECTED' : 'EXPOSED',
+          isProtected ? 'محمي' : 'مكشوف',
           style: Theme.of(context).textTheme.labelLarge?.copyWith(
                 fontSize: 11,
                 color: isProtected ? colors.primary : colors.error,

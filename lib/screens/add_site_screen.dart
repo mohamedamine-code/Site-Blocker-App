@@ -75,10 +75,10 @@ class _AddSiteScreenState extends State<AddSiteScreen> {
                           mainAxisSize: MainAxisSize.min,
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('Block a domain', style: Theme.of(context).textTheme.titleLarge),
+                            Text('حجب نطاق', style: Theme.of(context).textTheme.titleLarge),
                             const SizedBox(height: 8),
                             Text(
-                              'Type a domain like youtube.com. Protocols and paths are ignored automatically.',
+                              'أدخل نطاقاً مثل youtube.com. سيتم تجاهل البروتوكولات والمسارات تلقائياً.',
                               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                                   ),
@@ -86,22 +86,24 @@ class _AddSiteScreenState extends State<AddSiteScreen> {
                             const SizedBox(height: 16),
                             TextFormField(
                               controller: _urlController,
+                              textDirection: TextDirection.ltr,
+                              style: monoTextStyle(context, size: 15, weight: FontWeight.w600),
                               decoration: const InputDecoration(
                                 prefixIcon: Icon(Icons.public),
-                                labelText: 'Site URL or domain',
+                                labelText: 'رابط الموقع أو النطاق',
                                 hintText: 'example.com',
                               ),
                               keyboardType: TextInputType.url,
                               validator: (value) {
                                 if (value == null || value.trim().isEmpty) {
-                                  return 'Please enter a site.';
+                                  return 'يرجى إدخال موقع.';
                                 }
                                 return null;
                               },
                             ),
                             const SizedBox(height: 16),
                             Text(
-                              'Removal code',
+                              'رمز الإزالة',
                               style: Theme.of(context).textTheme.labelLarge,
                             ),
                             const SizedBox(height: 8),
@@ -119,9 +121,12 @@ class _AddSiteScreenState extends State<AddSiteScreen> {
                                 child: Row(
                                   children: [
                                     Expanded(
-                                      child: Text(
-                                        _generatedCode,
-                                        style: monoTextStyle(context, size: 15, weight: FontWeight.w700),
+                                      child: Directionality(
+                                        textDirection: TextDirection.ltr,
+                                        child: Text(
+                                          _generatedCode,
+                                          style: monoTextStyle(context, size: 15, weight: FontWeight.w700),
+                                        ),
                                       ),
                                     ),
                                     Icon(
@@ -135,7 +140,7 @@ class _AddSiteScreenState extends State<AddSiteScreen> {
                             ),
                             const SizedBox(height: 8),
                             Text(
-                              'Tap to copy and store this code safely. You need it to remove the block.',
+                              'اضغط للنسخ والاحتفاظ بهذا الرمز بأمان. ستحتاجه لإزالة الحجب.',
                               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                                   ),
@@ -158,7 +163,7 @@ class _AddSiteScreenState extends State<AddSiteScreen> {
                                         height: 20,
                                         child: CircularProgressIndicator(strokeWidth: 2),
                                       )
-                                    : const Text('Confirm block'),
+                                    : const Text('تأكيد الحجب'),
                               ),
                             ),
                           ],
@@ -185,7 +190,7 @@ class _AddSiteScreenState extends State<AddSiteScreen> {
       return;
     }
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Removal code copied to clipboard.')),
+      const SnackBar(content: Text('تم نسخ رمز الإزالة.')),
     );
   }
 
@@ -217,16 +222,19 @@ class _AddSiteScreenState extends State<AddSiteScreen> {
         barrierDismissible: false,
         builder: (context) {
           return AlertDialog(
-            title: const Text('Saved'),
+            title: const Text('تم الحفظ'),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Keep this code safe. It is required to remove the block.'),
+                const Text('احتفظ بهذا الرمز بأمان. ستحتاجه لإزالة الحجب.'),
                 const SizedBox(height: 16),
-                Text(
-                  generatedCode,
-                  style: monoTextStyle(context, size: 16, weight: FontWeight.w700),
+                Directionality(
+                  textDirection: TextDirection.ltr,
+                  child: Text(
+                    generatedCode,
+                    style: monoTextStyle(context, size: 16, weight: FontWeight.w700),
+                  ),
                 ),
               ],
             ),
@@ -237,11 +245,11 @@ class _AddSiteScreenState extends State<AddSiteScreen> {
                   await HapticFeedback.lightImpact();
                 },
                 icon: const Icon(Icons.copy),
-                label: const Text('Copy'),
+                label: const Text('نسخ'),
               ),
               FilledButton(
                 onPressed: () => Navigator.of(context).pop(),
-                child: const Text('Done'),
+                child: const Text('تم'),
               ),
             ],
           );
@@ -255,7 +263,7 @@ class _AddSiteScreenState extends State<AddSiteScreen> {
       Navigator.of(context).pop(true);
     } on ArgumentError catch (error) {
       setState(() {
-        _error = error.message?.toString() ?? 'Invalid URL.';
+        _error = error.message?.toString() ?? 'عنوان غير صالح.';
       });
     } catch (error) {
       setState(() {

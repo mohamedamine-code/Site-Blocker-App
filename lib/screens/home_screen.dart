@@ -97,7 +97,7 @@ class _HomeScreenState extends State<HomeScreen> {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _openAddSite,
         icon: const Icon(Icons.add),
-        label: const Text('Add site'),
+        label: const Text('إضافة موقع'),
       ),
       body: Column(
         children: [
@@ -106,14 +106,14 @@ class _HomeScreenState extends State<HomeScreen> {
             showBackButton: false,
             actions: [
               TopBarActionButton(
-                tooltip: 'Settings',
-                onPressed: _openSettings,
-                icon: Icons.settings_outlined,
-              ),
-              TopBarActionButton(
-                tooltip: 'Blocked sites',
+                tooltip: 'المواقع المحجوبة',
                 onPressed: _openBlockedSiteInfo,
                 icon: Icons.list_alt_outlined,
+              ),
+              TopBarActionButton(
+                tooltip: 'الإعدادات',
+                onPressed: _openSettings,
+                icon: Icons.settings_outlined,
               ),
             ],
           ),
@@ -143,9 +143,9 @@ class _HomeScreenState extends State<HomeScreen> {
                                     ),
                                   ),
                                   const SizedBox(height: 24),
-                                  _buildProtectionHero(),
-                                  const SizedBox(height: 16),
                                   _buildCounterCard(),
+                                  const SizedBox(height: 16),
+                                  _buildProtectionHero(),
                                   const SizedBox(height: 16),
                                   _buildActionRow(),
                                   const SizedBox(height: 16),
@@ -154,20 +154,20 @@ class _HomeScreenState extends State<HomeScreen> {
                                     runSpacing: 8,
                                     children: [
                                       MetricChip(
-                                        label: 'Blocked today',
+                                        label: 'المحجوب اليوم',
                                         value: '${_todaySummary.blockedCount}',
                                         icon: Icons.block,
                                       ),
                                       MetricChip(
-                                        label: 'Last blocked',
+                                        label: 'آخر حجب',
                                         value: _todaySummary.lastBlockedAt == null
                                             ? '--'
                                             : _timeLabel(_todaySummary.lastBlockedAt!),
                                         icon: Icons.schedule,
                                       ),
                                       MetricChip(
-                                        label: 'Clean streak',
-                                        value: '$_cleanStreak day(s)',
+                                        label: 'سلسلة نظيفة',
+                                        value: '$_cleanStreak يوم',
                                         icon: Icons.local_fire_department_outlined,
                                       ),
                                     ],
@@ -190,7 +190,7 @@ class _HomeScreenState extends State<HomeScreen> {
       padding: const EdgeInsets.all(16),
       children: [
         ErrorBanner(
-          message: _errorMessage ?? 'Unable to load dashboard data.',
+          message: _errorMessage ?? 'تعذر تحميل بيانات لوحة التحكم.',
           onRetry: _loadStats,
         ),
       ],
@@ -226,14 +226,14 @@ class _HomeScreenState extends State<HomeScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    _isProtected ? 'Protection is active' : 'Protection is limited',
+                    _isProtected ? 'الحماية مفعلة' : 'الحماية محدودة',
                     style: Theme.of(context).textTheme.titleMedium,
                   ),
                   const SizedBox(height: 8),
                   Text(
                     _isProtected
-                        ? 'System-wide DNS filtering is running.'
-                        : 'Disable Android Private DNS to restore strict blocking.',
+                        ? 'تصفية DNS على مستوى الجهاز تعمل.'
+                        : 'عطّل DNS الخاص في أندرويد لاستعادة الحجب الكامل.',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           color: colors.onSurfaceVariant,
                         ),
@@ -251,7 +251,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         borderRadius: BorderRadius.circular(999),
                       ),
                       child: Text(
-                        _isProtected ? 'PROTECTED' : 'EXPOSED',
+                        _isProtected ? 'محمي' : 'مكشوف',
                         style: Theme.of(context).textTheme.labelLarge?.copyWith(
                               color: _isProtected ? colors.primary : colors.error,
                               fontSize: 12,
@@ -303,7 +303,7 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Total blocked sites', style: Theme.of(context).textTheme.bodyMedium),
+                  Text('إجمالي المواقع المحجوبة', style: Theme.of(context).textTheme.bodyMedium),
                   const SizedBox(height: 8),
                   Text(
                     '$_totalSites',
@@ -331,13 +331,13 @@ class _HomeScreenState extends State<HomeScreen> {
     return Row(
       children: [
         ActionTile(
-          label: 'Blocklist',
+          label: 'القائمة',
           icon: Icons.list_alt_outlined,
           onTap: _openBlockedSiteInfo,
         ),
         const SizedBox(width: 8),
         ActionTile(
-          label: 'Settings',
+          label: 'الإعدادات',
           icon: Icons.tune,
           onTap: _openSettings,
         ),
@@ -350,7 +350,7 @@ class _HomeScreenState extends State<HomeScreen> {
       children: [
         IconButton(
           onPressed: () => _changeMonth(-1),
-          icon: const Icon(Icons.chevron_left),
+          icon: const Icon(Icons.chevron_right),
         ),
         Expanded(
           child: Text(
@@ -361,7 +361,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         IconButton(
           onPressed: () => _changeMonth(1),
-          icon: const Icon(Icons.chevron_right),
+          icon: const Icon(Icons.chevron_left),
         ),
       ],
     );
@@ -394,9 +394,9 @@ class _HomeScreenState extends State<HomeScreen> {
       spacing: 16,
       runSpacing: 8,
       children: [
-        dot(colors.primary, 'Clean day'),
-        dot(colors.error, 'Blocked day'),
-        dot(colors.outlineVariant, 'Inactive/future'),
+        dot(colors.primary, 'يوم نظيف'),
+        dot(colors.error, 'يوم محجوب'),
+        dot(colors.outlineVariant, 'غير نشط/مستقبل'),
       ],
     );
   }
@@ -416,7 +416,7 @@ class _HomeScreenState extends State<HomeScreen> {
       cells.add(_buildDayCell(context, date));
     }
 
-    const weekDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    const weekDays = ['إث', 'ثل', 'أر', 'خم', 'جم', 'سب', 'أحد'];
 
     return Column(
       children: [
@@ -500,18 +500,18 @@ class _HomeScreenState extends State<HomeScreen> {
 
   String _monthLabel(DateTime date) {
     const names = [
-      'January',
-      'February',
-      'March',
-      'April',
-      'May',
-      'June',
-      'July',
-      'August',
-      'September',
-      'October',
-      'November',
-      'December',
+      'يناير',
+      'فبراير',
+      'مارس',
+      'أبريل',
+      'مايو',
+      'يونيو',
+      'يوليو',
+      'أغسطس',
+      'سبتمبر',
+      'أكتوبر',
+      'نوفمبر',
+      'ديسمبر',
     ];
     return '${names[date.month - 1]} ${date.year}';
   }

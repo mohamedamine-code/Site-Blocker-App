@@ -117,9 +117,9 @@ class DatabaseService {
       );
     } on DatabaseException catch (error) {
       if (error.isUniqueConstraintError()) {
-        throw StateError('This site is already blocked.');
+        throw StateError('هذا الموقع محجوب بالفعل.');
       }
-      throw StateError('Failed to block site: ${error.toString()}');
+      throw StateError('فشل حجب الموقع: ${error.toString()}');
     }
     return generatedCode;
   }
@@ -127,7 +127,7 @@ class DatabaseService {
   Future<bool> removeBlockedSiteByCode(String removalCode) async {
     final sanitized = removalCode.trim();
     if (sanitized.isEmpty) {
-      throw ArgumentError('Removal code cannot be empty');
+      throw ArgumentError('لا يمكن أن يكون رمز الإزالة فارغاً');
     }
     final db = await _ensureDb();
     final hashedCode = _hash(sanitized);
@@ -145,7 +145,7 @@ class DatabaseService {
   }) async {
     final sanitized = removalCode.trim();
     if (sanitized.isEmpty) {
-      throw ArgumentError('Removal code cannot be empty');
+      throw ArgumentError('لا يمكن أن يكون رمز الإزالة فارغاً');
     }
 
     final db = await _ensureDb();
@@ -283,14 +283,14 @@ class DatabaseService {
   String _normalizeUrl(String rawUrl) {
     var value = rawUrl.trim();
     if (value.isEmpty) {
-      throw ArgumentError('URL cannot be empty');
+      throw ArgumentError('لا يمكن أن يكون الرابط فارغاً');
     }
     if (!value.contains('://')) {
       value = 'https://$value';
     }
     final uri = Uri.tryParse(value);
     if (uri == null || uri.host.isEmpty) {
-      throw ArgumentError('Invalid URL');
+      throw ArgumentError('عنوان غير صالح');
     }
 
     var host = uri.host.toLowerCase().trim();
@@ -299,7 +299,7 @@ class DatabaseService {
     }
     host = host.replaceAll(RegExp(r'\.+$'), '');
     if (host.isEmpty || host.contains(' ')) {
-      throw ArgumentError('Invalid URL');
+      throw ArgumentError('عنوان غير صالح');
     }
     return host;
   }

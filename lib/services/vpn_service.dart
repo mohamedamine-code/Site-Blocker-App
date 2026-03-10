@@ -29,7 +29,7 @@ class VpnServiceController {
     try {
       await _channel.invokeMethod('startVpn');
     } on PlatformException catch (e) {
-      throw Exception(e.message ?? 'Unable to start VPN service');
+      throw Exception(e.message ?? 'تعذر تشغيل خدمة VPN');
     }
   }
 
