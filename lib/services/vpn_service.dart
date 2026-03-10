@@ -18,7 +18,10 @@ class VpnServiceController {
 
   Future<void> _handleNativeCallbacks(MethodCall call) async {
     if (call.method == 'blockedDomain') {
-      // Intentionally ignored to avoid showing blocked-site message screens.
+      final domain = (call.arguments as String?)?.trim();
+      if (domain != null && domain.isNotEmpty) {
+        await DatabaseService.instance.recordBlockingEvent(domain);
+      }
     }
   }
 

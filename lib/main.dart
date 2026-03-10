@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'screens/BlockedSiteInfo.dart';
 import 'screens/add_site_screen.dart';
 import 'screens/block_screen.dart';
 import 'screens/home_screen.dart';
@@ -21,12 +22,50 @@ class SiteBlockerApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = ColorScheme.fromSeed(
+      seedColor: const Color(0xFF0D6E6E),
+      brightness: Brightness.light,
+    );
+
     return MaterialApp(
       title: 'Site Blocker',
       navigatorKey: appNavigatorKey,
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.indigo),
+        colorScheme: colorScheme,
+        scaffoldBackgroundColor: const Color(0xFFF5F7F8),
         useMaterial3: true,
+        appBarTheme: AppBarTheme(
+          centerTitle: false,
+          backgroundColor: colorScheme.surface,
+          foregroundColor: colorScheme.onSurface,
+          elevation: 0,
+          scrolledUnderElevation: 0,
+        ),
+        cardTheme: CardThemeData(
+          elevation: 0,
+          color: colorScheme.surface,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18),
+            side: BorderSide(
+              color: colorScheme.outlineVariant.withValues(alpha: 0.5),
+            ),
+          ),
+        ),
+        inputDecorationTheme: InputDecorationTheme(
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
+          filled: true,
+          fillColor: colorScheme.surface,
+        ),
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ElevatedButton.styleFrom(
+            padding: const EdgeInsets.symmetric(vertical: 14),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
+            ),
+          ),
+        ),
       ),
       initialRoute: HomeScreen.routeName,
       onGenerateRoute: (settings) {
@@ -35,6 +74,11 @@ class SiteBlockerApp extends StatelessWidget {
             return MaterialPageRoute(
               settings: settings,
               builder: (_) => const HomeScreen(),
+            );
+          case BlockedSiteInfoScreen.routeName:
+            return MaterialPageRoute(
+              settings: settings,
+              builder: (_) => const BlockedSiteInfoScreen(),
             );
           case AddSiteScreen.routeName:
             return MaterialPageRoute(

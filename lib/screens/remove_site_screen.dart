@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../services/database_service.dart';
 import '../services/vpn_service.dart';
@@ -30,61 +31,86 @@ class _RemoveSiteScreenState extends State<RemoveSiteScreen> {
       appBar: AppBar(
         title: const Text('Remove Blocked Site'),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Enter the 16-character removal code that was generated when the site was blocked.',
-              ),
-              const SizedBox(height: 24),
-              TextFormField(
-                controller: _codeController,
-                decoration: const InputDecoration(
-                  labelText: 'Removal Code',
-                  border: OutlineInputBorder(),
-                ),
-                maxLength: 32,
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Please enter the generated code';
-                  }
-                  if (value.trim().length < 8) {
-                    return 'Code must be at least 8 characters';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-              if (_error != null)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: Text(
-                    _error!,
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.error,
+      body: Form(
+        key: _formKey,
+        child: ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: const [
+                    Text(
+                      'Unblock with code',
+                      style: TextStyle(fontWeight: FontWeight.w600),
                     ),
+                    SizedBox(height: 6),
+                    Text(
+                      'Enter the removal code generated when you blocked the site.',
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 14),
+            TextFormField(
+              controller: _codeController,
+              decoration: InputDecoration(
+                labelText: 'Removal Code',
+                suffixIcon: IconButton(
+                  tooltip: 'Paste',
+                  icon: const Icon(Icons.paste),
+                  onPressed: _processing
+                      ? null
+                      : () async {
+                          final clipboard = await Clipboard.getData('text/plain');
+                          final text = clipboard?.text?.trim();
+                          if (text == null || text.isEmpty) {
+                            return;
+                          }
+                          _codeController.text = text;
+                        },
+                ),
+              ),
+              maxLength: 32,
+              validator: (value) {
+                if (value == null || value.trim().isEmpty) {
+                  return 'Please enter the generated code';
+                }
+                if (value.trim().length < 8) {
+                  return 'Code must be at least 8 characters';
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 10),
+            if (_error != null)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Text(
+                  _error!,
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.error,
                   ),
                 ),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: _processing ? null : _handleRemoval,
-                  icon: _processing
-                      ? const SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.check_circle_outline),
-                  label: const Text('Remove Site'),
-                ),
               ),
-            ],
-          ),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: _processing ? null : _handleRemoval,
+                icon: _processing
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.check_circle_outline),
+                label: const Text('Remove Site'),
+              ),
+            ),
+          ],
         ),
       ),
     );

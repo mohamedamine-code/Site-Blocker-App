@@ -4,15 +4,26 @@ import 'package:crypto/crypto.dart';
 import 'package:path/path.dart' as p;
 import 'package:sqflite/sqflite.dart';
 
+import '../models/blocking_event.dart';
 import '../models/blocked_site.dart';
 import '../utils/code_generator.dart';
+
+class DailySummary {
+  const DailySummary({
+    required this.blockedCount,
+    required this.lastBlockedAt,
+  });
+
+  final int blockedCount;
+  final DateTime? lastBlockedAt;
+}
 
 class DatabaseService {
   DatabaseService._();
 
   static final DatabaseService instance = DatabaseService._();
   static const _dbName = 'site_blocker.db';
-  static const _dbVersion = 1;
+  static const _dbVersion = 2;
 
   Database? _database;
 
@@ -27,15 +38,39 @@ class DatabaseService {
       path,
       version: _dbVersion,
       onCreate: (db, version) async {
-        await db.execute('''
-          CREATE TABLE ${BlockedSite.tableName}(
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            url TEXT NOT NULL UNIQUE,
-            removal_code_hash TEXT NOT NULL,
-            date_added INTEGER NOT NULL
-          )
-        ''');
+        await _createBlockedSitesTable(db);
+        await _createBlockingEventsTable(db);
       },
+      onUpgrade: (db, oldVersion, newVersion) async {
+        if (oldVersion < 2) {
+          await _createBlockingEventsTable(db);
+        }
+      },
+    );
+  }
+
+  Future<void> _createBlockedSitesTable(DatabaseExecutor db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS ${BlockedSite.tableName}(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        url TEXT NOT NULL UNIQUE,
+        removal_code_hash TEXT NOT NULL,
+        date_added INTEGER NOT NULL
+      )
+    ''');
+  }
+
+  Future<void> _createBlockingEventsTable(DatabaseExecutor db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS ${BlockingEvent.tableName}(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        domain TEXT NOT NULL,
+        timestamp INTEGER NOT NULL
+      )
+    ''');
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_blocking_events_timestamp '
+      'ON ${BlockingEvent.tableName}(timestamp)',
     );
   }
 
@@ -104,6 +139,128 @@ class DatabaseService {
     return deleted > 0;
   }
 
+  Future<void> recordBlockingEvent(String domain) async {
+    final normalized = domain.trim().toLowerCase();
+    if (normalized.isEmpty) {
+      return;
+    }
+    final db = await _ensureDb();
+    await db.insert(
+      BlockingEvent.tableName,
+      {
+        'domain': normalized,
+        'timestamp': DateTime.now().millisecondsSinceEpoch,
+      },
+    );
+  }
+
+  Future<DailySummary> getDailySummary([DateTime? day]) async {
+    final db = await _ensureDb();
+    final target = _dayOnly(day ?? DateTime.now());
+    final dayStart = target.millisecondsSinceEpoch;
+    final dayEnd = target.add(const Duration(days: 1)).millisecondsSinceEpoch;
+
+    final rows = await db.rawQuery(
+      'SELECT COUNT(*) AS blocked_count, MAX(timestamp) AS last_blocked '
+      'FROM ${BlockingEvent.tableName} WHERE timestamp >= ? AND timestamp < ?',
+      [dayStart, dayEnd],
+    );
+
+    if (rows.isEmpty) {
+      return const DailySummary(blockedCount: 0, lastBlockedAt: null);
+    }
+
+    final row = rows.first;
+    final blockedCount = (row['blocked_count'] as int?) ?? 0;
+    final lastBlockedRaw = row['last_blocked'] as int?;
+    return DailySummary(
+      blockedCount: blockedCount,
+      lastBlockedAt: lastBlockedRaw == null
+          ? null
+          : DateTime.fromMillisecondsSinceEpoch(lastBlockedRaw),
+    );
+  }
+
+  Future<DateTime?> getFirstBlockedSiteDate() async {
+    final db = await _ensureDb();
+    final rows = await db.rawQuery(
+      'SELECT MIN(date_added) AS first_date FROM ${BlockedSite.tableName}',
+    );
+    if (rows.isEmpty) {
+      return null;
+    }
+    final raw = rows.first['first_date'] as int?;
+    if (raw == null) {
+      return null;
+    }
+    return _dayOnly(DateTime.fromMillisecondsSinceEpoch(raw));
+  }
+
+  Future<Set<int>> getCalendarStatus(DateTime month) async {
+    final db = await _ensureDb();
+    final monthStart = DateTime(month.year, month.month, 1);
+    final nextMonth = DateTime(month.year, month.month + 1, 1);
+
+    final rows = await db.rawQuery(
+      "SELECT DISTINCT strftime('%d', timestamp / 1000, 'unixepoch', 'localtime') AS day "
+      'FROM ${BlockingEvent.tableName} WHERE timestamp >= ? AND timestamp < ?',
+      [
+        monthStart.millisecondsSinceEpoch,
+        nextMonth.millisecondsSinceEpoch,
+      ],
+    );
+
+    final blockedDays = <int>{};
+    for (final row in rows) {
+      final value = row['day'] as String?;
+      if (value == null) {
+        continue;
+      }
+      final parsed = int.tryParse(value);
+      if (parsed != null) {
+        blockedDays.add(parsed);
+      }
+    }
+    return blockedDays;
+  }
+
+  Future<int> getCleanStreak() async {
+    final firstTracked = await getFirstBlockedSiteDate();
+    if (firstTracked == null) {
+      return 0;
+    }
+
+    final blockedDayKeys = await _getBlockedDayKeys();
+    var streak = 0;
+    var cursor = _dayOnly(DateTime.now());
+
+    while (!cursor.isBefore(firstTracked)) {
+      if (blockedDayKeys.contains(_dayKey(cursor))) {
+        break;
+      }
+      streak += 1;
+      cursor = cursor.subtract(const Duration(days: 1));
+    }
+
+    return streak;
+  }
+
+  Future<Set<String>> _getBlockedDayKeys() async {
+    final db = await _ensureDb();
+    final rows = await db.rawQuery(
+      "SELECT DISTINCT date(timestamp / 1000, 'unixepoch', 'localtime') AS day "
+      'FROM ${BlockingEvent.tableName}',
+    );
+    final keys = <String>{};
+    for (final row in rows) {
+      final value = row['day'] as String?;
+      if (value != null && value.isNotEmpty) {
+        keys.add(value);
+      }
+    }
+    return keys;
+  }
+
   String _normalizeUrl(String rawUrl) {
     var value = rawUrl.trim();
     if (value.isEmpty) {
@@ -131,5 +288,16 @@ class DatabaseService {
   String _hash(String code) {
     final digest = sha256.convert(utf8.encode(code));
     return digest.toString();
+  }
+
+  DateTime _dayOnly(DateTime date) {
+    return DateTime(date.year, date.month, date.day);
+  }
+
+  String _dayKey(DateTime date) {
+    final year = date.year.toString().padLeft(4, '0');
+    final month = date.month.toString().padLeft(2, '0');
+    final day = date.day.toString().padLeft(2, '0');
+    return '$year-$month-$day';
   }
 }

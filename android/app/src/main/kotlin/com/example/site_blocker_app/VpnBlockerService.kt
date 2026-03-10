@@ -548,6 +548,6 @@ class VpnBlockerService : VpnService() {
 
     private fun notifyBlockedAttempt(domain: String) {
         lastBlockedDomain = domain
-        // Intentionally silent: keep blocking active without user-facing message.
+        FlutterChannelBridge.sendBlockedDomain(domain)
     }
 }

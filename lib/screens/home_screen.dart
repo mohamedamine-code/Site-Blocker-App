@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 
-import '../models/blocked_site.dart';
+import 'BlockedSiteInfo.dart';
 import '../services/database_service.dart';
-import '../services/vpn_service.dart';
-import 'add_site_screen.dart';
-import 'remove_site_screen.dart';
+import '../widgets/metric_chip.dart';
+import '../widgets/status_card.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -17,246 +16,271 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final _database = DatabaseService.instance;
-  final _vpnService = VpnServiceController.instance;
 
-  List<BlockedSite> _sites = [];
   bool _loading = true;
-  bool _privateDnsWarningShown = false;
-  String? _errorMessage;
+  DateTime _displayedMonth = DateTime(DateTime.now().year, DateTime.now().month);
+  Set<int> _blockedDays = <int>{};
+  DailySummary _todaySummary = const DailySummary(blockedCount: 0, lastBlockedAt: null);
+  int _cleanStreak = 0;
+  DateTime? _firstTrackedDate;
 
   @override
   void initState() {
     super.initState();
-    _initialize();
+    _loadStats();
   }
 
-  Future<void> _initialize() async {
-    await _loadSites();
-    await _startVpn();
-  }
-
-  Future<void> _loadSites() async {
-    setState(() {
-      _loading = true;
-      _errorMessage = null;
-    });
-    try {
-      final sites = await _database.fetchBlockedSites();
-      setState(() {
-        _sites = sites;
-      });
-    } catch (error) {
-      setState(() => _errorMessage = error.toString());
-    } finally {
-      setState(() {
-        _loading = false;
-      });
+  Future<void> _loadStats() async {
+    if (mounted) {
+      setState(() => _loading = true);
     }
-  }
 
-  Future<void> _startVpn() async {
-    try {
-      final mode = await _vpnService.getPrivateDnsMode();
-      final isBypassRisk = mode == 'opportunistic' || mode == 'hostname';
-      if (isBypassRisk) {
-        await _showPrivateDnsStrictModeDialog();
-        if (!mounted) return;
-        setState(() {
-          _errorMessage =
-              'Strict blocking is disabled while Private DNS is enabled. Turn it off in Android network settings.';
-        });
-        return;
-      }
+    final results = await Future.wait<dynamic>([
+      _database.getCalendarStatus(_displayedMonth),
+      _database.getDailySummary(),
+      _database.getCleanStreak(),
+      _database.getFirstBlockedSiteDate(),
+    ]);
+    final monthData = results[0] as Set<int>;
+    final summary = results[1] as DailySummary;
+    final streak = results[2] as int;
+    final firstTracked = results[3] as DateTime?;
 
-      await _vpnService.startVpn();
-      await _vpnService.refreshBlocklist();
-    } catch (error) {
-      setState(() => _errorMessage = error.toString());
-    }
-  }
-
-  Future<void> _showPrivateDnsStrictModeDialog() async {
-    if (_privateDnsWarningShown) {
+    if (!mounted) {
       return;
     }
-    if (!mounted) return;
 
-    _privateDnsWarningShown = true;
-    await showDialog<void>(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Disable Private DNS'),
-          content: const Text(
-            'Strict URL blocking requires Private DNS to be Off.\n\n'
-            'Go to Android Settings > Network & Internet > Private DNS and set it to Off, then return to the app.',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('OK'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  Future<void> _navigateToAddSite() async {
-    final added = await Navigator.pushNamed(context, AddSiteScreen.routeName);
-    if (added == true) {
-      await _loadSites();
-      await _vpnService.refreshBlocklist();
-    }
-  }
-
-  Future<void> _navigateToRemoveSite() async {
-    final removed =
-        await Navigator.pushNamed(context, RemoveSiteScreen.routeName);
-    if (removed == true) {
-      await _loadSites();
-      await _vpnService.refreshBlocklist();
-    }
+    setState(() {
+      _blockedDays = monthData;
+      _todaySummary = summary;
+      _cleanStreak = streak;
+      _firstTrackedDate = firstTracked;
+      _loading = false;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Site Blocker'),
-      ),
-      body: RefreshIndicator(
-        onRefresh: _refreshSitesAndBlocklist,
-        child: _buildBody(),
-      ),
-      floatingActionButton: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          FloatingActionButton.extended(
-            heroTag: 'add-site',
-            onPressed: _navigateToAddSite,
-            icon: const Icon(Icons.add),
-            label: const Text('Add Site'),
-          ),
-          const SizedBox(height: 12),
-          FloatingActionButton.extended(
-            heroTag: 'remove-site',
-            backgroundColor: Colors.redAccent,
-            onPressed: _navigateToRemoveSite,
-            icon: const Icon(Icons.remove_circle_outline),
-            label: const Text('Remove Site'),
+        automaticallyImplyLeading: false,
+        title: const Text('Tracking Stats'),
+        actions: [
+          IconButton(
+            onPressed: _openBlockedSiteInfo,
+            tooltip: 'Blocked sites',
+            icon: const Icon(Icons.list_alt_outlined),
           ),
         ],
       ),
+      body: _loading
+          ? const Center(child: CircularProgressIndicator())
+          : RefreshIndicator(
+              onRefresh: _loadStats,
+              child: ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.all(16),
+                children: [
+                  StatusCard(
+                    title: 'Clean streak',
+                    subtitle: '$_cleanStreak day(s) with zero blocked attempts',
+                    icon: Icons.local_fire_department,
+                    color: Colors.orange,
+                  ),
+                  const SizedBox(height: 10),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      MetricChip(
+                        label: 'Blocked today',
+                        value: '${_todaySummary.blockedCount}',
+                        icon: Icons.block,
+                      ),
+                      MetricChip(
+                        label: 'Last blocked',
+                        value: _todaySummary.lastBlockedAt == null
+                            ? '--'
+                            : _timeLabel(_todaySummary.lastBlockedAt!),
+                        icon: Icons.schedule,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  _buildCalendarHeader(context),
+                  const SizedBox(height: 10),
+                  _buildLegend(context),
+                  const SizedBox(height: 12),
+                  _buildCalendarGrid(context),
+                ],
+              ),
+            ),
     );
   }
 
-  Future<void> _refreshSitesAndBlocklist() async {
-    await _loadSites();
-    await _startVpn();
-    await _vpnService.refreshBlocklist();
-    await _validateRefreshCoverage();
-  }
-
-  Future<void> _validateRefreshCoverage() async {
-    if (_sites.isEmpty) {
-      return;
-    }
-
-    final unmatchedDomains = <String>[];
-    for (final site in _sites) {
-      final matchedDomain =
-          await _vpnService.findMatchingBlockedDomain(site.url);
-      if (matchedDomain == null) {
-        unmatchedDomains.add(site.url);
-      }
-    }
-
-    if (!mounted || unmatchedDomains.isEmpty) {
-      return;
-    }
-
-    final previewDomains = unmatchedDomains.take(3).join(', ');
-    final remainingCount = unmatchedDomains.length - 3;
-    final remainingLabel =
-        remainingCount > 0 ? ' +$remainingCount more' : '';
-
-    final messenger = ScaffoldMessenger.of(context);
-    messenger.hideCurrentSnackBar();
-    messenger.showSnackBar(
-      SnackBar(
-        content: Text(
-          'Refresh completed, but ${unmatchedDomains.length} domain(s) are not active yet: '
-          '$previewDomains$remainingLabel',
+  Widget _buildCalendarHeader(BuildContext context) {
+    return Row(
+      children: [
+        IconButton(
+          onPressed: () => _changeMonth(-1),
+          icon: const Icon(Icons.chevron_left),
         ),
+        Expanded(
+          child: Text(
+            _monthLabel(_displayedMonth),
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+        ),
+        IconButton(
+          onPressed: () => _changeMonth(1),
+          icon: const Icon(Icons.chevron_right),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildLegend(BuildContext context) {
+    Widget dot(Color color, String label) {
+      return Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 10,
+            height: 10,
+            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+          ),
+          const SizedBox(width: 6),
+          Text(label, style: Theme.of(context).textTheme.labelMedium),
+        ],
+      );
+    }
+
+    return Wrap(
+      spacing: 12,
+      runSpacing: 8,
+      children: [
+        dot(Colors.green.shade400, 'Clean day'),
+        dot(Colors.red.shade400, 'Blocked attempt'),
+        dot(Colors.grey.shade400, 'Inactive/future'),
+      ],
+    );
+  }
+
+  Widget _buildCalendarGrid(BuildContext context) {
+    final monthStart = DateTime(_displayedMonth.year, _displayedMonth.month, 1);
+    final monthDays = DateTime(_displayedMonth.year, _displayedMonth.month + 1, 0).day;
+    final leadingBlank = monthStart.weekday - 1;
+
+    final cells = <Widget>[];
+    for (var i = 0; i < leadingBlank; i++) {
+      cells.add(const SizedBox());
+    }
+
+    for (var day = 1; day <= monthDays; day++) {
+      final date = DateTime(_displayedMonth.year, _displayedMonth.month, day);
+      cells.add(_buildDayCell(context, date));
+    }
+
+    const weekDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+    return Column(
+      children: [
+        Row(
+          children: weekDays
+              .map(
+                (label) => Expanded(
+                  child: Center(
+                    child: Text(
+                      label,
+                      style: Theme.of(context).textTheme.labelMedium,
+                    ),
+                  ),
+                ),
+              )
+              .toList(),
+        ),
+        const SizedBox(height: 10),
+        GridView.count(
+          crossAxisCount: 7,
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          crossAxisSpacing: 6,
+          mainAxisSpacing: 6,
+          children: cells,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDayCell(BuildContext context, DateTime date) {
+    final today = _dayOnly(DateTime.now());
+    final firstTracked = _firstTrackedDate;
+    final isFuture = date.isAfter(today);
+    final beforeTracked = firstTracked != null && date.isBefore(firstTracked);
+    final blocked = _blockedDays.contains(date.day);
+
+    Color color;
+    if (isFuture || beforeTracked) {
+      color = Colors.grey.shade300;
+    } else if (blocked) {
+      color = Colors.red.shade300;
+    } else {
+      color = Colors.green.shade300;
+    }
+
+    return Container(
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(
+        '${date.day}',
+        style: Theme.of(context).textTheme.labelLarge,
       ),
     );
   }
 
-  Widget _buildBody() {
-
-    if (_loading) {
-      return ListView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        children: const [
-          SizedBox(height: 200),
-          Center(child: CircularProgressIndicator()),
-        ],
-      );
-    }
-
-    if (_errorMessage != null) {
-      return ListView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.all(16),
-        children: [
-          Text(
-            _errorMessage!,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: Theme.of(context).colorScheme.error,
-            ),
-          ),
-        ],
-      );
-    }
-
-    if (_sites.isEmpty) {
-      return ListView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        children: const [
-          SizedBox(height: 120),
-          Icon(Icons.shield, size: 72, color: Colors.grey),
-          SizedBox(height: 16),
-          Center(
-            child: Text(
-              'No blocked sites yet.\nUse the button below to add one.',
-              textAlign: TextAlign.center,
-            ),
-          ),
-        ],
-      );
-    }
-
-    return ListView.separated(
-      physics: const AlwaysScrollableScrollPhysics(),
-      itemCount: _sites.length,
-      separatorBuilder: (_, __) => const Divider(height: 1),
-      itemBuilder: (context, index) {
-        final site = _sites[index];
-        return ListTile(
-          leading: const Icon(Icons.language),
-          title: Text(site.url),
-          subtitle:
-              Text('Added on ${_formatDate(site.dateAdded)}'),
-        );
-      },
-    );
-
+  void _changeMonth(int delta) {
+    setState(() {
+      _displayedMonth = DateTime(_displayedMonth.year, _displayedMonth.month + delta, 1);
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+      _loadStats();
+    });
   }
 
-  String _formatDate(DateTime date) {
-    return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+  DateTime _dayOnly(DateTime date) => DateTime(date.year, date.month, date.day);
+
+  String _monthLabel(DateTime date) {
+    const names = [
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December',
+    ];
+    return '${names[date.month - 1]} ${date.year}';
+  }
+
+  String _timeLabel(DateTime date) {
+    final hh = date.hour.toString().padLeft(2, '0');
+    final mm = date.minute.toString().padLeft(2, '0');
+    return '$hh:$mm';
+  }
+
+  void _openBlockedSiteInfo() {
+    Navigator.of(context).pushNamed(BlockedSiteInfoScreen.routeName);
   }
 }
