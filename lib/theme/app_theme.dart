@@ -4,44 +4,44 @@ import 'package:google_fonts/google_fonts.dart';
 class AppPalette {
   const AppPalette._();
 
-  static const background = Color(0xFF0D1117);
-  static const surface = Color(0xFF161B22);
-  static const accent = Color(0xFF00E5FF);
-  static const danger = Color(0xFFFF4444);
-  static const textPrimary = Color(0xFFF0F6FC);
-  static const textSecondary = Color(0xFF8B949E);
+  static const background = Color(0xFF81A6C6);
+  static const surface = Color(0xFFAACDDC);
+  static const accent = Color(0xFFF3E3D0);
+  static const danger = Color(0xFFD2C4B4);
+  static const textPrimary = Color(0xFF1F3242);
+  static const textSecondary = Color(0xFF3F596F);
 }
 
 ThemeData buildAppTheme() {
   const scheme = ColorScheme(
-    brightness: Brightness.dark,
+    brightness: Brightness.light,
     primary: AppPalette.accent,
-    onPrimary: Color(0xFF001317),
-    primaryContainer: Color(0xFF00343D),
-    onPrimaryContainer: AppPalette.textPrimary,
-    secondary: Color(0xFF57D8EA),
-    onSecondary: Color(0xFF00262D),
-    secondaryContainer: Color(0xFF073D48),
-    onSecondaryContainer: AppPalette.textPrimary,
-    tertiary: Color(0xFF8AA4FF),
-    onTertiary: Color(0xFF00105A),
-    tertiaryContainer: Color(0xFF1E2B6D),
-    onTertiaryContainer: AppPalette.textPrimary,
+    onPrimary: Color(0xFF2B1E12),
+    primaryContainer: Color(0xFFF7EBDD),
+    onPrimaryContainer: Color(0xFF2B1E12),
+    secondary: Color(0xFF81A6C6),
+    onSecondary: Color(0xFF112332),
+    secondaryContainer: Color(0xFFAACDDC),
+    onSecondaryContainer: Color(0xFF1C3345),
+    tertiary: Color(0xFFD2C4B4),
+    onTertiary: Color(0xFF2F2720),
+    tertiaryContainer: Color(0xFFE2D8CB),
+    onTertiaryContainer: Color(0xFF3A3027),
     error: AppPalette.danger,
-    onError: AppPalette.textPrimary,
-    errorContainer: Color(0xFF431A1A),
-    onErrorContainer: AppPalette.textPrimary,
+    onError: Color(0xFF2F2720),
+    errorContainer: Color(0xFFE2D8CB),
+    onErrorContainer: Color(0xFF3A3027),
     surface: AppPalette.surface,
     onSurface: AppPalette.textPrimary,
     onSurfaceVariant: AppPalette.textSecondary,
-    outline: Color(0xFF2F363D),
-    outlineVariant: Color(0xFF262C33),
+    outline: Color(0xFF6B859B),
+    outlineVariant: Color(0xFF8DA6BC),
     shadow: Colors.black,
     scrim: Colors.black,
     inverseSurface: AppPalette.textPrimary,
     onInverseSurface: AppPalette.surface,
-    inversePrimary: Color(0xFF00BCD4),
-    surfaceContainerHighest: Color(0xFF1F2630),
+    inversePrimary: Color(0xFFE8D8C3),
+    surfaceContainerHighest: Color(0xFFBBD8E4),
   );
 
   final baseTextTheme = GoogleFonts.interTextTheme().apply(
@@ -83,13 +83,13 @@ ThemeData buildAppTheme() {
 
   return ThemeData(
     useMaterial3: true,
-    brightness: Brightness.dark,
+    brightness: Brightness.light,
     colorScheme: scheme,
     textTheme: textTheme,
     scaffoldBackgroundColor: AppPalette.background,
     canvasColor: AppPalette.background,
     dividerTheme: const DividerThemeData(
-      color: Color(0xFF2F363D),
+      color: Color(0xFF6B859B),
       thickness: 1,
       space: 1,
     ),
@@ -106,21 +106,21 @@ ThemeData buildAppTheme() {
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: const BorderSide(color: Color(0xFF2F363D)),
+        side: const BorderSide(color: Color(0xFF8DA6BC)),
       ),
     ),
     iconTheme: const IconThemeData(color: AppPalette.textPrimary),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
-      fillColor: const Color(0xFF1A212B),
+      fillColor: const Color(0xFFBBD8E4),
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Color(0xFF2F363D)),
+        borderSide: const BorderSide(color: Color(0xFF6B859B)),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Color(0xFF2F363D)),
+        borderSide: const BorderSide(color: Color(0xFF6B859B)),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
@@ -139,7 +139,7 @@ ThemeData buildAppTheme() {
       style: FilledButton.styleFrom(
         minimumSize: const Size.fromHeight(48),
         backgroundColor: AppPalette.accent,
-        foregroundColor: const Color(0xFF001317),
+        foregroundColor: const Color(0xFF2B1E12),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         textStyle: GoogleFonts.inter(fontWeight: FontWeight.w700),
       ),
@@ -148,15 +148,15 @@ ThemeData buildAppTheme() {
       style: OutlinedButton.styleFrom(
         minimumSize: const Size.fromHeight(48),
         foregroundColor: AppPalette.textPrimary,
-        side: const BorderSide(color: Color(0xFF2F363D)),
+        side: const BorderSide(color: Color(0xFF6B859B)),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         textStyle: GoogleFonts.inter(fontWeight: FontWeight.w700),
       ),
     ),
     chipTheme: ChipThemeData(
-      backgroundColor: const Color(0xFF1F2630),
-      selectedColor: const Color(0xFF073D48),
-      side: const BorderSide(color: Color(0xFF2F363D)),
+      backgroundColor: const Color(0xFFBBD8E4),
+      selectedColor: const Color(0xFFE2D8CB),
+      side: const BorderSide(color: Color(0xFF6B859B)),
       labelStyle: GoogleFonts.inter(
         color: AppPalette.textPrimary,
         fontWeight: FontWeight.w600,
@@ -167,7 +167,7 @@ ThemeData buildAppTheme() {
       color: AppPalette.accent,
     ),
     snackBarTheme: SnackBarThemeData(
-      backgroundColor: const Color(0xFF1A212B),
+      backgroundColor: const Color(0xFFAACDDC),
       contentTextStyle: GoogleFonts.inter(
         color: AppPalette.textPrimary,
         fontWeight: FontWeight.w600,
