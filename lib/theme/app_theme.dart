@@ -1,82 +1,80 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-class AppPalette {
-  const AppPalette._();
+class AppColors {
+  const AppColors._();
 
-  static const background = Color(0xFF81A6C6);
-  static const surface = Color(0xFFAACDDC);
-  static const accent = Color(0xFFF3E3D0);
-  static const danger = Color(0xFFD2C4B4);
-  static const textPrimary = Color(0xFF1F3242);
-  static const textSecondary = Color(0xFF3F596F);
+  static const background = Color(0xFFFAF3E1);
+  static const surface = Color(0xFFF5E7C6);
+  static const primary = Color(0xFFFF6D1F);
+  static const dark = Color(0xFF222222);
 }
 
 ThemeData buildAppTheme() {
-  const scheme = ColorScheme(
+  final scheme = ColorScheme(
     brightness: Brightness.light,
-    primary: AppPalette.accent,
-    onPrimary: Color(0xFF2B1E12),
-    primaryContainer: Color(0xFFF7EBDD),
-    onPrimaryContainer: Color(0xFF2B1E12),
-    secondary: Color(0xFF81A6C6),
-    onSecondary: Color(0xFF112332),
-    secondaryContainer: Color(0xFFAACDDC),
-    onSecondaryContainer: Color(0xFF1C3345),
-    tertiary: Color(0xFFD2C4B4),
-    onTertiary: Color(0xFF2F2720),
-    tertiaryContainer: Color(0xFFE2D8CB),
-    onTertiaryContainer: Color(0xFF3A3027),
-    error: AppPalette.danger,
-    onError: Color(0xFF2F2720),
-    errorContainer: Color(0xFFE2D8CB),
-    onErrorContainer: Color(0xFF3A3027),
-    surface: AppPalette.surface,
-    onSurface: AppPalette.textPrimary,
-    onSurfaceVariant: AppPalette.textSecondary,
-    outline: Color(0xFF6B859B),
-    outlineVariant: Color(0xFF8DA6BC),
-    shadow: Colors.black,
-    scrim: Colors.black,
-    inverseSurface: AppPalette.textPrimary,
-    onInverseSurface: AppPalette.surface,
-    inversePrimary: Color(0xFFE8D8C3),
-    surfaceContainerHighest: Color(0xFFBBD8E4),
+    primary: AppColors.primary,
+    onPrimary: AppColors.dark,
+    primaryContainer: AppColors.surface,
+    onPrimaryContainer: AppColors.dark,
+    secondary: AppColors.background,
+    onSecondary: AppColors.dark,
+    secondaryContainer: AppColors.surface,
+    onSecondaryContainer: AppColors.dark,
+    tertiary: AppColors.surface,
+    onTertiary: AppColors.dark,
+    tertiaryContainer: AppColors.background,
+    onTertiaryContainer: AppColors.dark,
+    error: AppColors.primary,
+    onError: AppColors.dark,
+    errorContainer: AppColors.surface,
+    onErrorContainer: AppColors.dark,
+    surface: AppColors.surface,
+    onSurface: AppColors.dark,
+    onSurfaceVariant: AppColors.dark.withValues(alpha: 0.72),
+    outline: AppColors.dark.withValues(alpha: 0.35),
+    outlineVariant: AppColors.dark.withValues(alpha: 0.20),
+    shadow: AppColors.dark.withValues(alpha: 0.35),
+    scrim: AppColors.dark.withValues(alpha: 0.45),
+    inverseSurface: AppColors.dark,
+    onInverseSurface: AppColors.surface,
+    inversePrimary: AppColors.primary,
+    surfaceContainerHighest: AppColors.background,
   );
 
   final baseTextTheme = GoogleFonts.interTextTheme().apply(
-    bodyColor: AppPalette.textPrimary,
-    displayColor: AppPalette.textPrimary,
+    bodyColor: AppColors.dark,
+    displayColor: AppColors.dark,
   );
 
   final textTheme = baseTextTheme.copyWith(
     headlineMedium: GoogleFonts.syne(
       fontWeight: FontWeight.w700,
-      color: AppPalette.textPrimary,
+      color: AppColors.dark,
       fontSize: 28,
       letterSpacing: 0.2,
     ),
     titleLarge: GoogleFonts.syne(
       fontWeight: FontWeight.w700,
-      color: AppPalette.textPrimary,
+      color: AppColors.dark,
       fontSize: 22,
       letterSpacing: 0.2,
     ),
     titleMedium: GoogleFonts.syne(
       fontWeight: FontWeight.w700,
-      color: AppPalette.textPrimary,
+      color: AppColors.dark,
       fontSize: 18,
       letterSpacing: 0.2,
     ),
     bodyMedium: GoogleFonts.inter(
       fontWeight: FontWeight.w500,
-      color: AppPalette.textPrimary,
+      color: AppColors.dark,
       fontSize: 15,
       height: 1.35,
     ),
     labelLarge: GoogleFonts.inter(
       fontWeight: FontWeight.w600,
-      color: AppPalette.textPrimary,
+      color: AppColors.dark,
       fontSize: 14,
     ),
   );
@@ -86,60 +84,60 @@ ThemeData buildAppTheme() {
     brightness: Brightness.light,
     colorScheme: scheme,
     textTheme: textTheme,
-    scaffoldBackgroundColor: AppPalette.background,
-    canvasColor: AppPalette.background,
-    dividerTheme: const DividerThemeData(
-      color: Color(0xFF6B859B),
+    scaffoldBackgroundColor: AppColors.background,
+    canvasColor: AppColors.background,
+    dividerTheme: DividerThemeData(
+      color: AppColors.dark.withValues(alpha: 0.35),
       thickness: 1,
       space: 1,
     ),
     appBarTheme: const AppBarTheme(
-      backgroundColor: AppPalette.background,
-      foregroundColor: AppPalette.textPrimary,
+      backgroundColor: AppColors.background,
+      foregroundColor: AppColors.dark,
       centerTitle: false,
       elevation: 0,
       scrolledUnderElevation: 0,
     ),
     cardTheme: CardThemeData(
-      color: AppPalette.surface,
+      color: AppColors.surface,
       margin: EdgeInsets.zero,
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: const BorderSide(color: Color(0xFF8DA6BC)),
+        side: BorderSide(color: AppColors.dark.withValues(alpha: 0.20)),
       ),
     ),
-    iconTheme: const IconThemeData(color: AppPalette.textPrimary),
+    iconTheme: const IconThemeData(color: AppColors.dark),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
-      fillColor: const Color(0xFFBBD8E4),
+      fillColor: AppColors.surface,
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Color(0xFF6B859B)),
+        borderSide: BorderSide(color: AppColors.dark.withValues(alpha: 0.35)),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Color(0xFF6B859B)),
+        borderSide: BorderSide(color: AppColors.dark.withValues(alpha: 0.35)),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: AppPalette.accent, width: 1.5),
+        borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
       ),
       hintStyle: GoogleFonts.inter(
-        color: AppPalette.textSecondary,
+        color: AppColors.dark.withValues(alpha: 0.72),
         fontWeight: FontWeight.w500,
       ),
       labelStyle: GoogleFonts.inter(
-        color: AppPalette.textSecondary,
+        color: AppColors.dark.withValues(alpha: 0.72),
         fontWeight: FontWeight.w600,
       ),
     ),
     filledButtonTheme: FilledButtonThemeData(
       style: FilledButton.styleFrom(
         minimumSize: const Size.fromHeight(48),
-        backgroundColor: AppPalette.accent,
-        foregroundColor: const Color(0xFF2B1E12),
+        backgroundColor: AppColors.primary,
+        foregroundColor: AppColors.dark,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         textStyle: GoogleFonts.inter(fontWeight: FontWeight.w700),
       ),
@@ -147,29 +145,29 @@ ThemeData buildAppTheme() {
     outlinedButtonTheme: OutlinedButtonThemeData(
       style: OutlinedButton.styleFrom(
         minimumSize: const Size.fromHeight(48),
-        foregroundColor: AppPalette.textPrimary,
-        side: const BorderSide(color: Color(0xFF6B859B)),
+        foregroundColor: AppColors.dark,
+        side: BorderSide(color: AppColors.dark.withValues(alpha: 0.35)),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         textStyle: GoogleFonts.inter(fontWeight: FontWeight.w700),
       ),
     ),
     chipTheme: ChipThemeData(
-      backgroundColor: const Color(0xFFBBD8E4),
-      selectedColor: const Color(0xFFE2D8CB),
-      side: const BorderSide(color: Color(0xFF6B859B)),
+      backgroundColor: AppColors.background,
+      selectedColor: AppColors.surface,
+      side: BorderSide(color: AppColors.dark.withValues(alpha: 0.35)),
       labelStyle: GoogleFonts.inter(
-        color: AppPalette.textPrimary,
+        color: AppColors.dark,
         fontWeight: FontWeight.w600,
       ),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
     ),
     progressIndicatorTheme: const ProgressIndicatorThemeData(
-      color: AppPalette.accent,
+      color: AppColors.primary,
     ),
     snackBarTheme: SnackBarThemeData(
-      backgroundColor: const Color(0xFFAACDDC),
+      backgroundColor: AppColors.surface,
       contentTextStyle: GoogleFonts.inter(
-        color: AppPalette.textPrimary,
+        color: AppColors.dark,
         fontWeight: FontWeight.w600,
       ),
       behavior: SnackBarBehavior.floating,
