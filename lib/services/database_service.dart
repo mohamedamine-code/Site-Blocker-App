@@ -99,11 +99,11 @@ class DatabaseService {
     return rows.map((row) => row['url'] as String).toSet();
   }
 
-  Future<String> addBlockedSite(String rawUrl) async {
+  Future<String> addBlockedSite(String rawUrl, {String? removalCode}) async {
     final db = await _ensureDb();
     final normalizedUrl = _normalizeUrl(rawUrl);
-    final removalCode = CodeGenerator.generate();
-    final hashedCode = _hash(removalCode);
+    final generatedCode = removalCode ?? CodeGenerator.generate();
+    final hashedCode = _hash(generatedCode);
 
     try {
       await db.insert(
@@ -121,7 +121,7 @@ class DatabaseService {
       }
       throw StateError('Failed to block site: ${error.toString()}');
     }
-    return removalCode;
+    return generatedCode;
   }
 
   Future<bool> removeBlockedSiteByCode(String removalCode) async {
@@ -135,6 +135,25 @@ class DatabaseService {
       BlockedSite.tableName,
       where: 'removal_code_hash = ?',
       whereArgs: [hashedCode],
+    );
+    return deleted > 0;
+  }
+
+  Future<bool> removeBlockedSiteWithCode({
+    required int siteId,
+    required String removalCode,
+  }) async {
+    final sanitized = removalCode.trim();
+    if (sanitized.isEmpty) {
+      throw ArgumentError('Removal code cannot be empty');
+    }
+
+    final db = await _ensureDb();
+    final hashedCode = _hash(sanitized);
+    final deleted = await db.delete(
+      BlockedSite.tableName,
+      where: 'id = ? AND removal_code_hash = ?',
+      whereArgs: [siteId, hashedCode],
     );
     return deleted > 0;
   }

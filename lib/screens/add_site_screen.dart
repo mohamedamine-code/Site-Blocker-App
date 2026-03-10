@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 
 import '../services/database_service.dart';
 import '../services/vpn_service.dart';
+import '../theme/app_theme.dart';
+import '../utils/code_generator.dart';
+import '../widgets/error_banner.dart';
+import '../widgets/security_app_bar.dart';
 
 class AddSiteScreen extends StatefulWidget {
   const AddSiteScreen({super.key});
@@ -16,8 +21,18 @@ class AddSiteScreen extends StatefulWidget {
 class _AddSiteScreenState extends State<AddSiteScreen> {
   final _formKey = GlobalKey<FormState>();
   final _urlController = TextEditingController();
+
   bool _submitting = false;
+  bool _isProtected = true;
   String? _error;
+  late String _generatedCode;
+
+  @override
+  void initState() {
+    super.initState();
+    _generatedCode = CodeGenerator.generate();
+    _loadProtectionStatus();
+  }
 
   @override
   void dispose() {
@@ -25,89 +40,146 @@ class _AddSiteScreenState extends State<AddSiteScreen> {
     super.dispose();
   }
 
+  Future<void> _loadProtectionStatus() async {
+    final mode = await VpnServiceController.instance.getPrivateDnsMode();
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _isProtected = mode != 'opportunistic' && mode != 'hostname';
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Add Site'),
+      appBar: SecurityAppBar(
+        title: 'Add Site',
+        isProtected: _isProtected,
       ),
-      body: Form(
-        key: _formKey,
-        child: ListView(
+      body: SafeArea(
+        child: Padding(
           padding: const EdgeInsets.all(16),
-          children: [
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: const [
-                    Text(
-                      'Add a domain to block',
-                      style: TextStyle(fontWeight: FontWeight.w600),
-                    ),
-                    SizedBox(height: 6),
-                    Text(
-                      'Use a domain like example.com. Protocols and paths are ignored automatically.',
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 14),
-            TextFormField(
-              controller: _urlController,
-              decoration: const InputDecoration(
-                labelText: 'Site URL or domain',
-                hintText: 'example.com',
-              ),
-              keyboardType: TextInputType.url,
-              validator: (value) {
-                if (value == null || value.trim().isEmpty) {
-                  return 'Please enter a site';
-                }
-                return null;
-              },
-            ),
-            const SizedBox(height: 12),
-            if (_error != null)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: Text(
-                  _error!,
-                  style: TextStyle(
-                    color: Theme.of(context).colorScheme.error,
+          child: Form(
+            key: _formKey,
+            child: Align(
+              alignment: Alignment.bottomCenter,
+              // Designer note: Elevated bottom-sheet layout keeps focus on one decisive action.
+              child: Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Block a domain', style: Theme.of(context).textTheme.titleLarge),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Type a domain like youtube.com. Protocols and paths are ignored automatically.',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            ),
+                      ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: _urlController,
+                        decoration: const InputDecoration(
+                          prefixIcon: Icon(Icons.public),
+                          labelText: 'Site URL or domain',
+                          hintText: 'example.com',
+                        ),
+                        keyboardType: TextInputType.url,
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'Please enter a site.';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Removal code',
+                        style: Theme.of(context).textTheme.labelLarge,
+                      ),
+                      const SizedBox(height: 8),
+                      InkWell(
+                        borderRadius: BorderRadius.circular(12),
+                        onTap: _copyRemovalCode,
+                        child: Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
+                          ),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  _generatedCode,
+                                  style: monoTextStyle(context, size: 15, weight: FontWeight.w700),
+                                ),
+                              ),
+                              Icon(
+                                Icons.copy_outlined,
+                                size: 18,
+                                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Tap to copy and store this code safely. You need it to remove the block.',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            ),
+                      ),
+                      if (_error != null) ...[
+                        const SizedBox(height: 16),
+                        ErrorBanner(
+                          message: _error!,
+                          onRetry: _handleSubmit,
+                        ),
+                      ],
+                      const SizedBox(height: 16),
+                      SizedBox(
+                        width: double.infinity,
+                        child: FilledButton(
+                          onPressed: _submitting ? null : _handleSubmit,
+                          child: _submitting
+                              ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                )
+                              : const Text('Confirm block'),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-              ),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: _submitting ? null : _handleSubmit,
-                icon: _submitting
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.shield),
-                label: const Text('Block Site'),
-              ),
+              )
+                  .animate()
+                  .slideY(begin: 0.08, end: 0, duration: 320.ms, curve: Curves.easeOutCubic)
+                  .fadeIn(duration: 280.ms),
             ),
-          ],
+          ),
         ),
       ),
     );
   }
 
-  Future<void> _copyRemovalCode(String code) async {
-    await Clipboard.setData(ClipboardData(text: code));
+  Future<void> _copyRemovalCode() async {
+    await Clipboard.setData(ClipboardData(text: _generatedCode));
+    await HapticFeedback.lightImpact();
     if (!mounted) {
       return;
     }
-    ScaffoldMessenger.of(context).hideCurrentSnackBar();
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Removal code copied')),
+      const SnackBar(content: Text('Removal code copied to clipboard.')),
     );
   }
 
@@ -115,21 +187,69 @@ class _AddSiteScreenState extends State<AddSiteScreen> {
     if (!_formKey.currentState!.validate()) {
       return;
     }
+
+    await HapticFeedback.selectionClick();
+
     setState(() {
       _submitting = true;
       _error = null;
     });
+
     try {
-      final removalCode =
-          await DatabaseService.instance.addBlockedSite(_urlController.text);
+      final generatedCode = await DatabaseService.instance.addBlockedSite(
+        _urlController.text,
+        removalCode: _generatedCode,
+      );
       await VpnServiceController.instance.refreshBlocklist();
-      if (!mounted) return;
-      await _showRemovalCode(removalCode);
-      if (!mounted) return;
-      Navigator.pop(context, true);
+
+      if (!mounted) {
+        return;
+      }
+
+      await showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) {
+          return AlertDialog(
+            title: const Text('Saved'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Keep this code safe. It is required to remove the block.'),
+                const SizedBox(height: 16),
+                Text(
+                  generatedCode,
+                  style: monoTextStyle(context, size: 16, weight: FontWeight.w700),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton.icon(
+                onPressed: () async {
+                  await Clipboard.setData(ClipboardData(text: generatedCode));
+                  await HapticFeedback.lightImpact();
+                },
+                icon: const Icon(Icons.copy),
+                label: const Text('Copy'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Done'),
+              ),
+            ],
+          );
+        },
+      );
+
+      if (!mounted) {
+        return;
+      }
+
+      Navigator.of(context).pop(true);
     } on ArgumentError catch (error) {
       setState(() {
-        _error = error.message?.toString() ?? 'Invalid URL';
+        _error = error.message?.toString() ?? 'Invalid URL.';
       });
     } catch (error) {
       setState(() {
@@ -142,42 +262,5 @@ class _AddSiteScreenState extends State<AddSiteScreen> {
         });
       }
     }
-  }
-
-  Future<void> _showRemovalCode(String code) {
-    return showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        title: const Text('Removal Code'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('Save this code somewhere safe. It will not be shown again.'),
-            const SizedBox(height: 12),
-            SelectableText(
-              code,
-              style: const TextStyle(
-                fontFamily: 'monospace',
-                fontWeight: FontWeight.bold,
-                fontSize: 20,
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton.icon(
-            onPressed: () => _copyRemovalCode(code),
-            icon: const Icon(Icons.copy, size: 16),
-            label: const Text('Copy'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('I saved it'),
-          ),
-        ],
-      ),
-    );
   }
 }

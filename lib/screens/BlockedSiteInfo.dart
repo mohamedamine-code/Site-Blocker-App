@@ -1,15 +1,20 @@
 // ignore_for_file: file_names
 
+import 'dart:convert';
+
+import 'package:crypto/crypto.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 
 import '../models/blocked_site.dart';
 import '../services/database_service.dart';
 import '../services/vpn_service.dart';
+import '../theme/app_theme.dart';
 import '../widgets/action_tile.dart';
-import '../widgets/metric_chip.dart';
-import '../widgets/status_card.dart';
+import '../widgets/error_banner.dart';
+import '../widgets/security_app_bar.dart';
 import 'add_site_screen.dart';
-import 'home_screen.dart';
 import 'remove_site_screen.dart';
 
 class BlockedSiteInfoScreen extends StatefulWidget {
@@ -25,17 +30,11 @@ class _BlockedSiteInfoScreenState extends State<BlockedSiteInfoScreen> {
   final _database = DatabaseService.instance;
   final _vpnService = VpnServiceController.instance;
 
-  List<BlockedSite> _sites = [];
+  final Set<int> _revealedCodeIds = <int>{};
   bool _loading = true;
-  bool _loadingMetrics = true;
-  bool _privateDnsWarningShown = false;
-  bool _vpnHealthy = true;
+  bool _isProtected = true;
   String? _errorMessage;
-  String? _syncWarning;
-  DateTime? _lastSyncedAt;
-  DailySummary _todaySummary =
-      const DailySummary(blockedCount: 0, lastBlockedAt: null);
-  int _cleanStreak = 0;
+  List<BlockedSite> _sites = <BlockedSite>[];
 
   @override
   void initState() {
@@ -44,346 +43,437 @@ class _BlockedSiteInfoScreenState extends State<BlockedSiteInfoScreen> {
   }
 
   Future<void> _initialize() async {
-    await Future.wait<void>([
-      _loadSites(),
-      _loadMetrics(),
-    ]);
-    await _startVpn();
-  }
-
-  Future<void> _loadMetrics() async {
-    setState(() {
-      _loadingMetrics = true;
-    });
-
-    try {
-      final results = await Future.wait<dynamic>([
-        _database.getDailySummary(),
-        _database.getCleanStreak(),
-      ]);
-      final summary = results[0] as DailySummary;
-      final streak = results[1] as int;
-      if (!mounted) return;
-      setState(() {
-        _todaySummary = summary;
-        _cleanStreak = streak;
-      });
-    } finally {
-      if (mounted) {
-        setState(() {
-          _loadingMetrics = false;
-        });
-      }
-    }
+    await _loadSites();
   }
 
   Future<void> _loadSites() async {
-    setState(() {
-      _loading = true;
-      _errorMessage = null;
-    });
-    try {
-      final sites = await _database.fetchBlockedSites();
+    if (mounted) {
       setState(() {
-        _sites = sites;
-      });
-    } catch (error) {
-      setState(() => _errorMessage = error.toString());
-    } finally {
-      setState(() {
-        _loading = false;
+        _loading = true;
+        _errorMessage = null;
       });
     }
-  }
 
-  Future<void> _startVpn() async {
     try {
-      final mode = await _vpnService.getPrivateDnsMode();
-      final isBypassRisk = mode == 'opportunistic' || mode == 'hostname';
-      if (isBypassRisk) {
-        await _showPrivateDnsStrictModeDialog();
-        if (!mounted) return;
-        setState(() {
-          _vpnHealthy = false;
-          _errorMessage =
-              'Strict blocking is disabled while Private DNS is enabled. Turn it off in Android network settings.';
-        });
+      final results = await Future.wait<dynamic>([
+        _database.fetchBlockedSites(),
+        _vpnService.getPrivateDnsMode(),
+      ]);
+
+      if (!mounted) {
         return;
       }
 
-      await _vpnService.startVpn();
-      await _vpnService.refreshBlocklist();
-      if (!mounted) return;
+      final sites = results[0] as List<BlockedSite>;
+      final privateDnsMode = results[1] as String;
+
       setState(() {
-        _vpnHealthy = true;
+        _sites = sites;
+        _isProtected = privateDnsMode != 'opportunistic' && privateDnsMode != 'hostname';
+        _loading = false;
       });
     } catch (error) {
+      if (!mounted) {
+        return;
+      }
       setState(() {
-        _vpnHealthy = false;
+        _loading = false;
         _errorMessage = error.toString();
       });
     }
   }
 
-  Future<void> _showPrivateDnsStrictModeDialog() async {
-    if (_privateDnsWarningShown) {
-      return;
-    }
-    if (!mounted) return;
-
-    _privateDnsWarningShown = true;
-    await showDialog<void>(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Disable Private DNS'),
-          content: const Text(
-            'Strict URL blocking requires Private DNS to be Off.\n\n'
-            'Go to Android Settings > Network & Internet > Private DNS and set it to Off, then return to the app.',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('OK'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  Future<void> _navigateToAddSite() async {
-    final added = await Navigator.pushNamed(context, AddSiteScreen.routeName);
-    if (added == true) {
-      await _loadSites();
-      await _vpnService.refreshBlocklist();
-      await _loadMetrics();
-      if (!mounted) return;
-      setState(() {
-        _lastSyncedAt = DateTime.now();
-      });
-    }
-  }
-
-  Future<void> _navigateToRemoveSite() async {
-    final removed =
-        await Navigator.pushNamed(context, RemoveSiteScreen.routeName);
-    if (removed == true) {
-      await _loadSites();
-      await _vpnService.refreshBlocklist();
-      await _loadMetrics();
-      if (!mounted) return;
-      setState(() {
-        _lastSyncedAt = DateTime.now();
-      });
-    }
-  }
-
-  void _openDashboard() {
-    if (Navigator.of(context).canPop()) {
-      Navigator.of(context).pop();
-      return;
-    }
-    Navigator.of(context).pushReplacementNamed(HomeScreen.routeName);
+  Future<void> _refreshSites() async {
+    await _vpnService.refreshBlocklist();
+    await _loadSites();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Site Blocker'),
+      appBar: SecurityAppBar(
+        title: 'Blocked Sites',
+        isProtected: _isProtected,
         actions: [
           IconButton(
-            onPressed: _openDashboard,
-            tooltip: 'Dashboard',
-            icon: const Icon(Icons.home_outlined),
+            tooltip: 'Manual remove',
+            onPressed: _openRemoveScreen,
+            icon: const Icon(Icons.lock_open_outlined),
           ),
         ],
       ),
       body: RefreshIndicator(
-        onRefresh: _refreshSitesAndBlocklist,
-        child: _buildBody(),
+        onRefresh: _refreshSites,
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.all(16),
+          children: [
+            Row(
+              children: [
+                ActionTile(
+                  label: 'Add site',
+                  icon: Icons.add_circle_outline,
+                  onTap: _openAddSite,
+                ),
+                const SizedBox(width: 8),
+                ActionTile(
+                  label: 'Remove by code',
+                  icon: Icons.key_outlined,
+                  color: Theme.of(context).colorScheme.error,
+                  onTap: _openRemoveScreen,
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            if (_errorMessage != null)
+              ErrorBanner(
+                message: _errorMessage!,
+                onRetry: _loadSites,
+              )
+            else if (_loading)
+              const Padding(
+                padding: EdgeInsets.only(top: 48),
+                child: Center(child: CircularProgressIndicator()),
+              )
+            else if (_sites.isEmpty)
+              _buildEmptyState()
+            else
+              ..._sites.asMap().entries.map((entry) {
+                final index = entry.key;
+                final site = entry.value;
+                return _buildAnimatedSiteTile(site, index);
+              }),
+          ],
+        ),
       ),
     );
   }
 
-  Future<void> _refreshSitesAndBlocklist() async {
-    if (!mounted) return;
-    setState(() {
-      _syncWarning = null;
-    });
-    await _loadSites();
-    await _startVpn();
-    await _vpnService.refreshBlocklist();
-    final unmatchedCount = await _validateRefreshCoverage();
-    await _loadMetrics();
-    if (!mounted) {
-      return;
-    }
-    setState(() {
-      _lastSyncedAt = DateTime.now();
-      if (unmatchedCount > 0) {
-        _syncWarning =
-            '$unmatchedCount domain(s) are still not active after refresh. Kill and reopen the browser to clear DNS cache.';
-      }
-    });
-  }
-
-  Future<int> _validateRefreshCoverage() async {
-    if (_sites.isEmpty) {
-      return 0;
-    }
-
-    final unmatchedDomains = <String>[];
-    for (final site in _sites) {
-      final matchedDomain =
-          await _vpnService.findMatchingBlockedDomain(site.url);
-      if (matchedDomain == null) {
-        unmatchedDomains.add(site.url);
-      }
-    }
-
-    return unmatchedDomains.length;
-  }
-
-  Widget _buildBody() {
-    return ListView(
-      physics: const AlwaysScrollableScrollPhysics(),
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-      children: [
-        _buildProtectionCard(),
-        const SizedBox(height: 10),
-        _buildMetricsRow(),
-        const SizedBox(height: 14),
-        Row(
+  Widget _buildEmptyState() {
+    // Designer note: The empty state includes a direct CTA to reduce decision friction for first-time users.
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
           children: [
-            ActionTile(
-              label: 'Add Site',
-              icon: Icons.add_circle_outline,
-              onTap: _navigateToAddSite,
+            Icon(
+              Icons.shield_outlined,
+              size: 56,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
-            const SizedBox(width: 10),
-            ActionTile(
-              label: 'Remove',
-              icon: Icons.remove_circle_outline,
-              color: Theme.of(context).colorScheme.error,
-              onTap: _navigateToRemoveSite,
+            const SizedBox(height: 16),
+            Text(
+              'No sites blocked yet',
+              style: Theme.of(context).textTheme.titleMedium,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Add your first distracting domain to activate focus protection.',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: _openAddSite,
+                icon: const Icon(Icons.add),
+                label: const Text('Add blocked site'),
+              ),
             ),
           ],
         ),
-        if (_syncWarning != null) ...[
-          const SizedBox(height: 12),
-          StatusCard(
-            title: 'Sync note',
-            subtitle: _syncWarning!,
-            icon: Icons.info_outline,
-            color: Colors.orange,
+      ),
+    );
+  }
+
+  Widget _buildAnimatedSiteTile(BlockedSite site, int index) {
+    final codePreview = _revealedCodeIds.contains(site.id)
+        ? site.removalCodeHash.substring(0, 16)
+        : '••••••••••••••••';
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Dismissible(
+        key: ValueKey<int>(site.id ?? index),
+        direction: DismissDirection.endToStart,
+        confirmDismiss: (_) => _confirmRemoval(site),
+        background: Container(
+          alignment: Alignment.centerRight,
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.error.withValues(alpha: 0.16),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Theme.of(context).colorScheme.error),
           ),
-        ],
-        const SizedBox(height: 18),
-        Text(
-          'Blocked Sites',
-          style: Theme.of(context).textTheme.titleMedium,
+          child: Icon(
+            Icons.delete_outline,
+            color: Theme.of(context).colorScheme.error,
+          ),
         ),
-        const SizedBox(height: 8),
-        if (_loading)
-          const Padding(
-            padding: EdgeInsets.only(top: 24),
-            child: Center(child: CircularProgressIndicator()),
-          )
-        else if (_sites.isEmpty)
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                children: const [
-                  Icon(Icons.shield_outlined, size: 56, color: Colors.grey),
-                  SizedBox(height: 10),
-                  Text(
-                    'No blocked sites yet. Tap Add Site to start protection.',
-                    textAlign: TextAlign.center,
-                  ),
-                ],
-              ),
+        child: Card(
+          child: ListTile(
+            minVerticalPadding: 12,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+            leading: _buildFaviconPlaceholder(site.url),
+            title: Text(
+              site.url,
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(fontSize: 16),
             ),
-          )
-        else
-          ..._sites.map(
-            (site) => Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Card(
-                child: ListTile(
-                  leading: const Icon(Icons.language),
-                  title: Text(site.url),
-                  subtitle: Text('Added on ${_formatDate(site.dateAdded)}'),
+            subtitle: Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(8),
+                onTap: () => _toggleCodeReveal(site.id),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                  child: Row(
+                    children: [
+                      Icon(
+                        _revealedCodeIds.contains(site.id) ? Icons.visibility_off : Icons.visibility,
+                        size: 18,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          codePreview,
+                          style: monoTextStyle(context),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
           ),
-        if (_errorMessage != null) ...[
-          const SizedBox(height: 8),
-          Text(
-            _errorMessage!,
-            style: TextStyle(color: Theme.of(context).colorScheme.error),
-          ),
-        ],
-      ],
+        ),
+      ).animate(delay: Duration(milliseconds: 35 * index)).slideX(
+            begin: 0.08,
+            end: 0,
+            duration: 320.ms,
+            curve: Curves.easeOutCubic,
+          ).fadeIn(duration: 280.ms),
     );
   }
 
-  Widget _buildProtectionCard() {
-    if (!_vpnHealthy || _errorMessage != null) {
-      return StatusCard(
-        title: 'Protection needs attention',
-        subtitle: _errorMessage ?? 'VPN is not fully active.',
-        icon: Icons.warning_amber_rounded,
-        color: Theme.of(context).colorScheme.error,
-      );
+  Widget _buildFaviconPlaceholder(String domain) {
+    final firstChar = domain.isNotEmpty ? domain.characters.first.toUpperCase() : '?';
+    final colors = Theme.of(context).colorScheme;
+
+    return CircleAvatar(
+      radius: 20,
+      backgroundColor: colors.surfaceContainerHighest,
+      child: Text(
+        firstChar,
+        style: Theme.of(context).textTheme.labelLarge?.copyWith(color: colors.primary),
+      ),
+    );
+  }
+
+  Future<void> _toggleCodeReveal(int? siteId) async {
+    if (siteId == null) {
+      return;
+    }
+    await HapticFeedback.selectionClick();
+    setState(() {
+      if (_revealedCodeIds.contains(siteId)) {
+        _revealedCodeIds.remove(siteId);
+      } else {
+        _revealedCodeIds.add(siteId);
+      }
+    });
+  }
+
+  Future<bool> _confirmRemoval(BlockedSite site) async {
+    if (site.id == null) {
+      return false;
     }
 
-    return const StatusCard(
-      title: 'Protection active',
-      subtitle: 'DNS blocking is running. Pull down to sync latest rules.',
-      icon: Icons.verified_user,
-      color: Colors.green,
+    final removed = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Theme.of(context).colorScheme.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (context) => _CodeConfirmationSheet(
+        site: site,
+        onConfirm: (code) => _database.removeBlockedSiteWithCode(
+          siteId: site.id!,
+          removalCode: code,
+        ),
+      ),
+    );
+
+    if (removed == true) {
+      await HapticFeedback.mediumImpact();
+      await _vpnService.refreshBlocklist();
+      await _loadSites();
+      return true;
+    }
+
+    return false;
+  }
+
+  Future<void> _openAddSite() async {
+    await HapticFeedback.lightImpact();
+    if (!mounted) {
+      return;
+    }
+    final added = await Navigator.of(context).pushNamed(AddSiteScreen.routeName);
+    if (added == true) {
+      await _refreshSites();
+    }
+  }
+
+  Future<void> _openRemoveScreen() async {
+    await HapticFeedback.lightImpact();
+    if (!mounted) {
+      return;
+    }
+    final removed = await Navigator.of(context).pushNamed(RemoveSiteScreen.routeName);
+    if (removed == true) {
+      await _refreshSites();
+    }
+  }
+}
+
+class _CodeConfirmationSheet extends StatefulWidget {
+  const _CodeConfirmationSheet({
+    required this.site,
+    required this.onConfirm,
+  });
+
+  final BlockedSite site;
+  final Future<bool> Function(String code) onConfirm;
+
+  @override
+  State<_CodeConfirmationSheet> createState() => _CodeConfirmationSheetState();
+}
+
+class _CodeConfirmationSheetState extends State<_CodeConfirmationSheet> {
+  final _controller = TextEditingController();
+  bool _submitting = false;
+  int _shakeTick = 0;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final keyboardInset = MediaQuery.of(context).viewInsets.bottom;
+    final enteredHash = sha256.convert(utf8.encode(_controller.text.trim())).toString();
+    final exactMatch = enteredHash == widget.site.removalCodeHash;
+
+    return Padding(
+      padding: EdgeInsets.fromLTRB(16, 16, 16, 16 + keyboardInset),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: colors.error.withValues(alpha: 0.16),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(Icons.lock, color: colors.error),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Confirm removal',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'This action cannot be undone',
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(color: colors.error),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Enter the exact 16-character removal code for ${widget.site.url}.',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: colors.onSurfaceVariant),
+          ),
+          const SizedBox(height: 16),
+          TextField(
+            controller: _controller,
+            style: monoTextStyle(context, size: 15),
+            decoration: const InputDecoration(
+              hintText: 'Enter removal code',
+            ),
+            onChanged: (_) => setState(() {}),
+            onSubmitted: (_) {
+              if (!exactMatch) {
+                _triggerWrongCodeFeedback();
+              }
+            },
+          )
+              .animate(target: _shakeTick.toDouble())
+              .shake(
+                hz: 4,
+                duration: 360.ms,
+                offset: const Offset(8, 0),
+              ),
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton(
+              onPressed: !_submitting && exactMatch ? _submit : null,
+              child: _submitting
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Text('Remove site'),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
-  Widget _buildMetricsRow() {
-    final streakValue = _loadingMetrics ? '...' : '$_cleanStreak';
-    final todayValue = _loadingMetrics ? '...' : '${_todaySummary.blockedCount}';
-    final lastSyncValue = _lastSyncedAt == null ? '--:--' : _formatTime(_lastSyncedAt!);
-
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: [
-        MetricChip(
-          label: 'Clean streak',
-          value: streakValue,
-          icon: Icons.local_fire_department,
-        ),
-        MetricChip(
-          label: 'Blocked today',
-          value: todayValue,
-          icon: Icons.block,
-        ),
-        MetricChip(
-          label: 'Last sync',
-          value: lastSyncValue,
-          icon: Icons.sync,
-        ),
-      ],
-    );
+  void _triggerWrongCodeFeedback() {
+    HapticFeedback.vibrate();
+    setState(() {
+      _shakeTick += 1;
+    });
   }
 
-  String _formatTime(DateTime date) {
-    final hh = date.hour.toString().padLeft(2, '0');
-    final mm = date.minute.toString().padLeft(2, '0');
-    return '$hh:$mm';
-  }
+  Future<void> _submit() async {
+    setState(() {
+      _submitting = true;
+    });
 
-  String _formatDate(DateTime date) {
-    return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+    final removed = await widget.onConfirm(_controller.text.trim());
+
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _submitting = false;
+    });
+
+    if (removed) {
+      Navigator.of(context).pop(true);
+    } else {
+      _triggerWrongCodeFeedback();
+    }
   }
 }

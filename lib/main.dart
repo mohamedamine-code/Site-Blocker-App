@@ -5,8 +5,11 @@ import 'screens/add_site_screen.dart';
 import 'screens/block_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/remove_site_screen.dart';
+import 'screens/settings_screen.dart';
+import 'services/app_settings_service.dart';
 import 'services/database_service.dart';
 import 'services/vpn_service.dart';
+import 'theme/app_theme.dart';
 
 final GlobalKey<NavigatorState> appNavigatorKey = GlobalKey<NavigatorState>();
 
@@ -17,56 +20,43 @@ Future<void> main() async {
   runApp(const SiteBlockerApp());
 }
 
-class SiteBlockerApp extends StatelessWidget {
+class SiteBlockerApp extends StatefulWidget {
   const SiteBlockerApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final colorScheme = ColorScheme.fromSeed(
-      seedColor: const Color(0xFF0D6E6E),
-      brightness: Brightness.light,
-    );
+  State<SiteBlockerApp> createState() => _SiteBlockerAppState();
+}
 
+class _SiteBlockerAppState extends State<SiteBlockerApp> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _autoStartVpnOnLaunch();
+    });
+  }
+
+  Future<void> _autoStartVpnOnLaunch() async {
+    final autoStartEnabled =
+        await AppSettingsService.instance.isVpnAutoStartEnabled();
+    if (!autoStartEnabled) {
+      return;
+    }
+
+    try {
+      await VpnServiceController.instance.startVpn();
+      await VpnServiceController.instance.refreshBlocklist();
+    } catch (_) {
+      // Best effort: user may deny permission or service may be unavailable briefly.
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Site Blocker',
       navigatorKey: appNavigatorKey,
-      theme: ThemeData(
-        colorScheme: colorScheme,
-        scaffoldBackgroundColor: const Color(0xFFF5F7F8),
-        useMaterial3: true,
-        appBarTheme: AppBarTheme(
-          centerTitle: false,
-          backgroundColor: colorScheme.surface,
-          foregroundColor: colorScheme.onSurface,
-          elevation: 0,
-          scrolledUnderElevation: 0,
-        ),
-        cardTheme: CardThemeData(
-          elevation: 0,
-          color: colorScheme.surface,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(18),
-            side: BorderSide(
-              color: colorScheme.outlineVariant.withValues(alpha: 0.5),
-            ),
-          ),
-        ),
-        inputDecorationTheme: InputDecorationTheme(
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(14),
-          ),
-          filled: true,
-          fillColor: colorScheme.surface,
-        ),
-        elevatedButtonTheme: ElevatedButtonThemeData(
-          style: ElevatedButton.styleFrom(
-            padding: const EdgeInsets.symmetric(vertical: 14),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(14),
-            ),
-          ),
-        ),
-      ),
+      theme: buildAppTheme(),
       initialRoute: HomeScreen.routeName,
       onGenerateRoute: (settings) {
         switch (settings.name) {
@@ -89,6 +79,11 @@ class SiteBlockerApp extends StatelessWidget {
             return MaterialPageRoute(
               settings: settings,
               builder: (_) => const RemoveSiteScreen(),
+            );
+          case SettingsScreen.routeName:
+            return MaterialPageRoute(
+              settings: settings,
+              builder: (_) => const SettingsScreen(),
             );
           case BlockScreen.routeName:
             final url = settings.arguments as String? ?? 'Blocked site';
