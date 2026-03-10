@@ -61,120 +61,128 @@ class _AddSiteScreenState extends State<AddSiteScreen> {
           Expanded(
             child: SafeArea(
               top: false,
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Form(
-                  key: _formKey,
-                  child: Align(
-                    alignment: Alignment.bottomCenter,
-                    // Designer note: Elevated bottom-sheet layout keeps focus on one decisive action.
-                    child: Card(
-                      child: Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('حجب نطاق', style: Theme.of(context).textTheme.titleLarge),
-                            const SizedBox(height: 8),
-                            Text(
-                              'أدخل نطاقاً مثل youtube.com. سيتم تجاهل البروتوكولات والمسارات تلقائياً.',
-                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                                  ),
-                            ),
-                            const SizedBox(height: 16),
-                            TextFormField(
-                              controller: _urlController,
-                              textDirection: TextDirection.ltr,
-                              style: monoTextStyle(context, size: 15, weight: FontWeight.w600),
-                              decoration: const InputDecoration(
-                                prefixIcon: Icon(Icons.public),
-                                labelText: 'رابط الموقع أو النطاق',
-                                hintText: 'example.com',
-                              ),
-                              keyboardType: TextInputType.url,
-                              validator: (value) {
-                                if (value == null || value.trim().isEmpty) {
-                                  return 'يرجى إدخال موقع.';
-                                }
-                                return null;
-                              },
-                            ),
-                            const SizedBox(height: 16),
-                            Text(
-                              'رمز الإزالة',
-                              style: Theme.of(context).textTheme.labelLarge,
-                            ),
-                            const SizedBox(height: 8),
-                            InkWell(
-                              borderRadius: BorderRadius.circular(12),
-                              onTap: _copyRemovalCode,
-                              child: Container(
-                                width: double.infinity,
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                                decoration: BoxDecoration(
-                                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
-                                ),
-                                child: Row(
-                                  children: [
-                                    Expanded(
-                                      child: Directionality(
-                                        textDirection: TextDirection.ltr,
-                                        child: Text(
-                                          _generatedCode,
-                                          style: monoTextStyle(context, size: 15, weight: FontWeight.w700),
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+                  return SingleChildScrollView(
+                    padding: EdgeInsets.fromLTRB(16, 16, 16, 16 + bottomInset),
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                      child: Form(
+                        key: _formKey,
+                        child: Align(
+                          alignment: Alignment.topCenter,
+                          // Designer note: Elevated bottom-sheet layout keeps focus on one decisive action.
+                          child: Card(
+                            child: Padding(
+                              padding: const EdgeInsets.all(16),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text('حجب نطاق', style: Theme.of(context).textTheme.titleLarge),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    'أدخل نطاقاً مثل youtube.com. سيتم تجاهل البروتوكولات والمسارات تلقائياً.',
+                                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                          color: Theme.of(context).colorScheme.onSurfaceVariant,
                                         ),
+                                  ),
+                                  const SizedBox(height: 16),
+                                  TextFormField(
+                                    controller: _urlController,
+                                    textDirection: TextDirection.ltr,
+                                    style: monoTextStyle(context, size: 15, weight: FontWeight.w600),
+                                    decoration: const InputDecoration(
+                                      prefixIcon: Icon(Icons.public),
+                                      labelText: 'رابط الموقع أو النطاق',
+                                      hintText: 'example.com',
+                                    ),
+                                    keyboardType: TextInputType.url,
+                                    validator: (value) {
+                                      if (value == null || value.trim().isEmpty) {
+                                        return 'يرجى إدخال موقع.';
+                                      }
+                                      return null;
+                                    },
+                                  ),
+                                  const SizedBox(height: 16),
+                                  Text(
+                                    'رمز الإزالة',
+                                    style: Theme.of(context).textTheme.labelLarge,
+                                  ),
+                                  const SizedBox(height: 8),
+                                  InkWell(
+                                    borderRadius: BorderRadius.circular(12),
+                                    onTap: _copyRemovalCode,
+                                    child: Container(
+                                      width: double.infinity,
+                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                                      decoration: BoxDecoration(
+                                        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          Expanded(
+                                            child: Directionality(
+                                              textDirection: TextDirection.ltr,
+                                              child: Text(
+                                                _generatedCode,
+                                                style: monoTextStyle(context, size: 15, weight: FontWeight.w700),
+                                              ),
+                                            ),
+                                          ),
+                                          Icon(
+                                            Icons.copy_outlined,
+                                            size: 18,
+                                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                          ),
+                                        ],
                                       ),
                                     ),
-                                    Icon(
-                                      Icons.copy_outlined,
-                                      size: 18,
-                                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    'اضغط للنسخ والاحتفاظ بهذا الرمز بأمان. ستحتاجه لإزالة الحجب.',
+                                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                        ),
+                                  ),
+                                  if (_error != null) ...[
+                                    const SizedBox(height: 16),
+                                    ErrorBanner(
+                                      message: _error!,
+                                      onRetry: _handleSubmit,
                                     ),
                                   ],
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'اضغط للنسخ والاحتفاظ بهذا الرمز بأمان. ستحتاجه لإزالة الحجب.',
-                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                  const SizedBox(height: 16),
+                                  SizedBox(
+                                    width: double.infinity,
+                                    child: FilledButton(
+                                      onPressed: _submitting ? null : _handleSubmit,
+                                      child: _submitting
+                                          ? const SizedBox(
+                                              width: 20,
+                                              height: 20,
+                                              child: CircularProgressIndicator(strokeWidth: 2),
+                                            )
+                                          : const Text('تأكيد الحجب'),
+                                    ),
                                   ),
-                            ),
-                            if (_error != null) ...[
-                              const SizedBox(height: 16),
-                              ErrorBanner(
-                                message: _error!,
-                                onRetry: _handleSubmit,
-                              ),
-                            ],
-                            const SizedBox(height: 16),
-                            SizedBox(
-                              width: double.infinity,
-                              child: FilledButton(
-                                onPressed: _submitting ? null : _handleSubmit,
-                                child: _submitting
-                                    ? const SizedBox(
-                                        width: 20,
-                                        height: 20,
-                                        child: CircularProgressIndicator(strokeWidth: 2),
-                                      )
-                                    : const Text('تأكيد الحجب'),
+                                ],
                               ),
                             ),
-                          ],
+                          )
+                              .animate()
+                              .slideY(begin: 0.08, end: 0, duration: 320.ms, curve: Curves.easeOutCubic)
+                              .fadeIn(duration: 280.ms),
                         ),
                       ),
-                    )
-                        .animate()
-                        .slideY(begin: 0.08, end: 0, duration: 320.ms, curve: Curves.easeOutCubic)
-                        .fadeIn(duration: 280.ms),
-                  ),
-                ),
+                    ),
+                  );
+                },
               ),
             ),
           ),
